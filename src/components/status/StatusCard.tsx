@@ -3,7 +3,13 @@ import { useEffect, useState } from 'react';
 type StatusResponse = {
   ok: boolean;
   hasD1: boolean;
-  chain: string;
+  d1Ping: boolean;
+  chain: {
+    id: number;
+    name: string;
+    slug: string;
+  };
+  adminAllowlistConfigured: boolean;
   now: string;
 };
 
@@ -38,10 +44,16 @@ export default function StatusCard() {
         <dl className="status-grid">
           <dt>API</dt>
           <dd>{status.ok ? 'ok' : 'error'}</dd>
-          <dt>Chain</dt>
-          <dd>{status.chain}</dd>
-          <dt>D1 Bound</dt>
+          <dt>Has D1 Binding</dt>
           <dd>{status.hasD1 ? 'yes' : 'no'}</dd>
+          <dt>D1 Ping</dt>
+          <dd>{status.d1Ping ? 'ok' : 'failed'}</dd>
+          <dt>Chain</dt>
+          <dd>
+            {status.chain.name} (id {status.chain.id})
+          </dd>
+          <dt>Admin Allowlist</dt>
+          <dd>{status.adminAllowlistConfigured ? 'configured' : 'not configured'}</dd>
           <dt>Server Time</dt>
           <dd>{status.now}</dd>
         </dl>

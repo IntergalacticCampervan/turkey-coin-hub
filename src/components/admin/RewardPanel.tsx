@@ -11,6 +11,7 @@ type User = {
 
 type MintResponse = {
   ok: boolean;
+  eventId?: string;
   txHash: string | null;
   error?: string;
 };
@@ -18,8 +19,10 @@ type MintResponse = {
 function RewardPanelInner() {
   const [users, setUsers] = useState<User[]>([]);
   const [reason, setReason] = useState('manual reward');
+  const [idempotencyKey, setIdempotencyKey] = useState('');
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);
   const [mintingFor, setMintingFor] = useState<string | null>(null);
 
@@ -27,8 +30,21 @@ function RewardPanelInner() {
     setLoadingUsers(true);
     try {
       const response = await fetch('/api/users');
+      const authWarning = response.headers.get('x-auth-warning');
+      setWarning(authWarning);
+
       if (response.status === 401 || response.status === 403) {
-        setAuthError('Protected route. Sign in via Cloudflare Access to use admin actions.');
+        let message = 'Protected route. Sign in via Cloudflare Access to use admin actions.';
+        try {
+          const body = (await response.json()) as { error?: string };
+          if (body.error) {
+            message = body.error;
+          }
+        } catch {
+          // keep fallback message
+        }
+
+        setAuthError(message);
         setUsers([]);
         return;
       }
@@ -56,6 +72,9 @@ function RewardPanelInner() {
     setMintingFor(walletAddress);
     setResult(null);
 
+    const computedIdempotencyKey =
+      idempotencyKey.trim() || `${walletAddress}-${amount}-${Date.now()}`;
+
     try {
       const response = await fetch('/api/admin/mint', {
         method: 'POST',
@@ -64,9 +83,12 @@ function RewardPanelInner() {
           walletAddress,
           amount,
           reason,
-          idempotencyKey: `${walletAddress}-${amount}-${Date.now()}`,
+          idempotencyKey: computedIdempotencyKey,
         }),
       });
+
+      const authWarning = response.headers.get('x-auth-warning');
+      setWarning(authWarning);
 
       const json = (await response.json()) as MintResponse;
       if (!response.ok || !json.ok) {
@@ -74,7 +96,8 @@ function RewardPanelInner() {
         return;
       }
 
-      setResult(json.txHash ? `Queued. txHash: ${json.txHash}` : 'Queued mint request (tx pending).');
+      const txText = json.txHash ? `txHash: ${json.txHash}` : 'tx pending';
+      setResult(`Queued event ${json.eventId || '(unknown)'}, ${txText}.`);
     } catch {
       setResult('Network error while creating mint request.');
     } finally {
@@ -91,6 +114,7 @@ function RewardPanelInner() {
         <ConnectWalletButton />
       </div>
 
+      {warning ? <p className="hint">{warning}</p> : null}
       {authError ? <p className="msg err">{authError}</p> : null}
 
       <div className="stack">
@@ -102,6 +126,16 @@ function RewardPanelInner() {
           onChange={(event) => setReason(event.target.value)}
           placeholder="manual reward"
           maxLength={120}
+        />
+
+        <label htmlFor="idempotency">Idempotency key (optional)</label>
+        <input
+          id="idempotency"
+          type="text"
+          value={idempotencyKey}
+          onChange={(event) => setIdempotencyKey(event.target.value)}
+          placeholder="auto-generated if empty"
+          maxLength={180}
         />
       </div>
 

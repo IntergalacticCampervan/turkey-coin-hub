@@ -29,10 +29,7 @@ function OnboardFormInner() {
     }
 
     if (!isHandleValid) {
-      setMessage({
-        tone: 'error',
-        text: 'Handle must be 3-24 chars and use only letters, numbers, or underscore.',
-      });
+      setMessage({ tone: 'error', text: 'Invalid handle. Use 3-24 letters, numbers, or underscore.' });
       return;
     }
 
@@ -46,9 +43,15 @@ function OnboardFormInner() {
         body: JSON.stringify({ walletAddress: address, handle }),
       });
 
-      const json = (await response.json()) as APIResponse;
-      if (!response.ok || !json.ok) {
-        setMessage({ tone: 'error', text: json.error || 'Onboarding failed.' });
+      let payload: APIResponse = { ok: false, error: 'Onboarding failed.' };
+      try {
+        payload = (await response.json()) as APIResponse;
+      } catch {
+        payload = { ok: false, error: 'Unexpected response from server' };
+      }
+
+      if (!response.ok || !payload.ok) {
+        setMessage({ tone: 'error', text: payload.error || 'Onboarding failed.' });
         return;
       }
 

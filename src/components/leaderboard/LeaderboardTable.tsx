@@ -18,6 +18,7 @@ function shortWallet(walletAddress: string): string {
 export default function LeaderboardTable() {
   const [rows, setRows] = useState<LeaderboardEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [noDb, setNoDb] = useState(false);
 
   async function load() {
     try {
@@ -25,6 +26,8 @@ export default function LeaderboardTable() {
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
+
+      setNoDb(response.headers.get('x-no-db') === 'true');
       const json = (await response.json()) as LeaderboardEntry[];
       setRows(Array.isArray(json) ? json : []);
       setError(null);
@@ -44,6 +47,7 @@ export default function LeaderboardTable() {
       <h2>Leaderboard</h2>
       <p>Public, read-only balances. Refreshes every 30 seconds.</p>
 
+      {noDb ? <p className="hint">D1 is not configured in this runtime; showing empty fallback data.</p> : null}
       {error ? <p className="msg err">{error}</p> : null}
 
       <table>

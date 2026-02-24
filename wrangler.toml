@@ -1,0 +1,9 @@
+name = "turkey-coin-hub"
+compatibility_date = "2026-02-24"
+pages_build_output_dir = "./dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "turkey_coin_hub"
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+preview_database_id = "REPLACE_WITH_D1_PREVIEW_DATABASE_ID"

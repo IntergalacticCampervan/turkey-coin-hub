@@ -4,17 +4,21 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "astro dev",
+    "dev:cf": "wrangler pages dev ./dist --compatibility-date=2026-02-24 --persist-to=.wrangler/state",
     "build": "astro build",
     "preview": "astro preview",
+    "deploy": "wrangler pages deploy ./dist",
     "astro": "astro"
   },
   "dependencies": {
+    "@astrojs/cloudflare": "^12.6.12",
     "@astrojs/react": "^4.4.2",
     "@rainbow-me/rainbowkit": "^2.2.10",
     "@tanstack/react-query": "^5.90.21",
     "astro": "^5.17.1",
     "lucide-react": "^0.575.0",
     "viem": "^2.46.3",
-    "wagmi": "^2.19.5"
+    "wagmi": "^2.19.5",
+    "wrangler": "^4.68.0"
   }
 }

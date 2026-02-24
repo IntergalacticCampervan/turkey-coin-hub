@@ -1,7 +1,9 @@
 import type { APIRoute } from 'astro';
 
-import { requireAccessAuth } from '../../../lib/auth';
+import { getAdminAuthEnv, requireAccessAuth } from '../../../lib/auth';
 import { getDB } from '../../../lib/db';
+
+export const prerender = false;
 
 type MintBody = {
   walletAddress?: string;
@@ -10,10 +12,13 @@ type MintBody = {
   idempotencyKey?: string;
 };
 
-function json(data: unknown, status = 200) {
+function json(data: unknown, status = 200, headers?: Record<string, string>) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'content-type': 'application/json; charset=utf-8' },
+    headers: {
+      'content-type': 'application/json; charset=utf-8',
+      ...(headers || {}),
+    },
   });
 }
 
@@ -22,43 +27,43 @@ function randomId() {
 }
 
 export const POST: APIRoute = async (context) => {
-  const auth = requireAccessAuth(context.request);
+  const auth = requireAccessAuth(context.request, getAdminAuthEnv(context.locals));
   if (!auth.ok) {
-    return json({ ok: false, error: auth.error }, 401);
+    return json({ ok: false, error: auth.error }, auth.status);
   }
+
+  const warningHeaders = auth.warning ? { 'x-auth-warning': auth.warning } : undefined;
 
   let body: MintBody;
   try {
     body = (await context.request.json()) as MintBody;
   } catch {
-    return json({ ok: false, error: 'Invalid JSON body' }, 400);
+    return json({ ok: false, error: 'Invalid JSON body' }, 400, warningHeaders);
   }
 
   const walletAddress = String(body.walletAddress ?? '').trim().toLowerCase();
   const amount = Number(body.amount);
-  const reason = String(body.reason ?? '').trim();
+  const reason = String(body.reason ?? '').trim() || 'manual reward';
   const idempotencyKey = String(body.idempotencyKey ?? '').trim();
 
   if (!/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
-    return json({ ok: false, error: 'Invalid wallet address' }, 400);
+    return json({ ok: false, error: 'Invalid wallet address' }, 400, warningHeaders);
   }
 
-  if (!Number.isInteger(amount) || amount <= 0) {
-    return json({ ok: false, error: 'Amount must be a positive integer' }, 400);
-  }
-
-  if (reason.length < 3 || reason.length > 120) {
-    return json({ ok: false, error: 'Reason must be between 3 and 120 chars' }, 400);
+  if (!Number.isInteger(amount) || amount < 1 || amount > 1000) {
+    return json({ ok: false, error: 'Amount must be an integer between 1 and 1000' }, 400, warningHeaders);
   }
 
   if (idempotencyKey.length < 8) {
-    return json({ ok: false, error: 'idempotencyKey must be at least 8 chars' }, 400);
+    return json({ ok: false, error: 'idempotencyKey is required (min 8 chars)' }, 400, warningHeaders);
   }
 
   const db = getDB(context);
   if (!db) {
-    return json({ ok: false, error: 'D1 is not configured' }, 503);
+    return json({ ok: false, error: 'D1 is not configured' }, 503, warningHeaders);
   }
+
+  const eventId = randomId();
 
   try {
     await db
@@ -78,12 +83,16 @@ export const POST: APIRoute = async (context) => {
           VALUES (?, ?, ?, ?, ?, NULL, 'queued', ?, ?)
         `,
       )
-      .bind(randomId(), walletAddress, amount, reason, idempotencyKey, new Date().toISOString(), auth.subject)
+      .bind(eventId, walletAddress, amount, reason, idempotencyKey, new Date().toISOString(), auth.subject)
       .run();
 
     // TODO: call Cloudflare Worker signer / contract mint and then persist mint_tx_hash + final status.
-    return json({ ok: true, txHash: null });
+    return json({ ok: true, eventId, txHash: null }, 200, warningHeaders);
   } catch {
-    return json({ ok: false, error: 'Failed to queue mint event (possible duplicate idempotency key)' }, 409);
+    return json(
+      { ok: false, error: 'Failed to queue mint event (possible duplicate idempotencyKey)' },
+      409,
+      warningHeaders,
+    );
   }
 };
