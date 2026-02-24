@@ -6,6 +6,14 @@ interface Props {
 }
 
 const { title = 'Turkey Coin Hub' } = Astro.props;
+const pathname = Astro.url.pathname;
+const navItems = [
+  { href: '/', label: 'Home' },
+  { href: '/leaderboard', label: 'Leaderboard' },
+  { href: '/onboard', label: 'Onboard' },
+  { href: '/admin', label: 'Admin' },
+  { href: '/status', label: 'Status' },
+];
 ---
 
 <!doctype html>
@@ -18,23 +26,33 @@ const { title = 'Turkey Coin Hub' } = Astro.props;
     <link rel="icon" href="/favicon.ico" />
     <title>{title}</title>
     <style>
+      @keyframes riseIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
       :root {
         color-scheme: light;
-        --bg: #f4f7f5;
-        --surface: #ffffff;
-        --text: #122026;
-        --muted: #4b6069;
-        --line: #d3dde1;
-        --brand: #14684c;
-        --brand-soft: #def2ea;
-        --danger: #9f2d2d;
+        --bg: #f5f8fb;
+        --surface: rgba(255, 255, 255, 0.9);
+        --surface-strong: #ffffff;
+        --text: #10222b;
+        --muted: #4f6671;
+        --line: #d5e0e6;
+        --brand: #0d7d57;
+        --brand-soft: #ddf5eb;
+        --danger: #a83333;
+        --shadow: 0 10px 30px rgba(16, 34, 43, 0.08);
+        --radius: 14px;
       }
       * { box-sizing: border-box; }
       body {
         margin: 0;
-        font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-family: 'Space Grotesk', 'Avenir Next', 'Segoe UI', sans-serif;
         color: var(--text);
-        background: radial-gradient(circle at top left, #e8f8ee 0%, var(--bg) 35%, #eef3f5 100%);
+        background:
+          radial-gradient(900px 480px at -10% -10%, #dff7ec 0%, transparent 70%),
+          radial-gradient(600px 320px at 105% 0%, #dbeaf7 0%, transparent 75%),
+          linear-gradient(160deg, #f7fbfd 0%, var(--bg) 100%);
       }
       a { color: var(--brand); text-decoration: none; }
       a:hover { text-decoration: underline; }
@@ -42,63 +60,110 @@ const { title = 'Turkey Coin Hub' } = Astro.props;
         position: sticky;
         top: 0;
         z-index: 10;
-        background: color-mix(in srgb, var(--surface) 86%, transparent);
+        background: color-mix(in srgb, var(--surface-strong) 80%, transparent);
         border-bottom: 1px solid var(--line);
-        backdrop-filter: blur(6px);
+        backdrop-filter: blur(12px);
       }
       .header-inner {
         max-width: 980px;
         margin: 0 auto;
-        padding: 0.8rem 1rem;
+        padding: 0.9rem 1rem;
         display: flex;
         flex-wrap: wrap;
         justify-content: space-between;
         align-items: center;
         gap: 0.8rem;
       }
-      .brand { font-weight: 700; }
+      .brand {
+        font-size: 1.03rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+      }
       .chain {
-        font-size: 0.86rem;
+        font-size: 0.8rem;
         color: var(--muted);
         background: var(--brand-soft);
-        padding: 0.2rem 0.5rem;
+        padding: 0.24rem 0.56rem;
         border-radius: 999px;
+        margin-left: 0.45rem;
       }
       nav {
         display: flex;
-        gap: 0.75rem;
+        gap: 0.45rem;
         flex-wrap: wrap;
+      }
+      nav a {
+        padding: 0.35rem 0.62rem;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        font-size: 0.93rem;
+        color: var(--muted);
+        transition: all 160ms ease;
+      }
+      nav a:hover {
+        text-decoration: none;
+        border-color: var(--line);
+        color: var(--text);
+        background: var(--surface-strong);
+      }
+      nav a[aria-current='page'] {
+        color: #0b5f42;
+        background: var(--brand-soft);
+        border-color: #b8e4d2;
+        font-weight: 600;
       }
       main {
         max-width: 980px;
-        margin: 1.2rem auto;
-        padding: 0 1rem 1.5rem;
+        margin: 1.35rem auto;
+        padding: 0 1rem 1.7rem;
       }
       .panel {
         background: var(--surface);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(6px);
         border: 1px solid var(--line);
-        border-radius: 12px;
-        padding: 1rem;
+        border-radius: var(--radius);
+        padding: 1rem 1.05rem;
+        animation: riseIn 300ms ease both;
       }
       .stack {
         display: flex;
         flex-direction: column;
-        gap: 0.55rem;
+        gap: 0.5rem;
         margin-top: 1rem;
       }
       .wallet-row {
         margin: 0.75rem 0;
       }
       input, button {
-        padding: 0.62rem 0.75rem;
+        padding: 0.66rem 0.8rem;
         border-radius: 8px;
         border: 1px solid var(--line);
+        font-family: inherit;
+      }
+      input {
+        background: #fff;
+        transition: border-color 160ms ease, box-shadow 160ms ease;
+      }
+      input:focus-visible {
+        outline: none;
+        border-color: #97c8b4;
+        box-shadow: 0 0 0 3px rgba(13, 125, 87, 0.12);
       }
       button {
         background: var(--brand);
         color: #fff;
         border: none;
         cursor: pointer;
+        font-weight: 600;
+        transition: transform 120ms ease, filter 160ms ease;
+      }
+      button:hover { filter: brightness(1.04); }
+      button:active { transform: translateY(1px); }
+      h1, h2 {
+        margin-top: 0;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
       }
       button:disabled {
         opacity: 0.6;
@@ -112,15 +177,16 @@ const { title = 'Turkey Coin Hub' } = Astro.props;
       th, td {
         border-bottom: 1px solid var(--line);
         text-align: left;
-        padding: 0.65rem 0.5rem;
+        padding: 0.7rem 0.5rem;
       }
       .msg {
         margin-top: 0.9rem;
         border-radius: 8px;
         padding: 0.65rem 0.75rem;
+        border: 1px solid transparent;
       }
-      .ok { background: #e8f8ee; color: #155d40; }
-      .err { background: #fde8e8; color: var(--danger); }
+      .ok { background: #e8f8ee; color: #155d40; border-color: #c7ead7; }
+      .err { background: #fde8e8; color: var(--danger); border-color: #f2c7c7; }
       .hint { color: var(--muted); font-size: 0.9rem; }
       .user-list {
         margin: 1rem 0 0;
@@ -135,8 +201,9 @@ const { title = 'Turkey Coin Hub' } = Astro.props;
         align-items: center;
         border: 1px solid var(--line);
         border-radius: 10px;
-        padding: 0.7rem;
+        padding: 0.74rem;
         gap: 0.8rem;
+        background: var(--surface-strong);
       }
       .actions { display: flex; gap: 0.5rem; }
       .status-grid {
@@ -147,6 +214,12 @@ const { title = 'Turkey Coin Hub' } = Astro.props;
       }
       .status-grid dt { font-weight: 600; }
       .status-grid dd { margin: 0; }
+      @media (max-width: 680px) {
+        .chain { display: inline-block; margin: 0.45rem 0 0; }
+        nav { width: 100%; }
+        nav a { flex: 1 1 auto; text-align: center; }
+        table { font-size: 0.92rem; }
+      }
     </style>
   </head>
   <body>
@@ -157,11 +230,11 @@ const { title = 'Turkey Coin Hub' } = Astro.props;
           <span class="chain">Chain: {APP_CHAIN_META.name}</span>
         </div>
         <nav>
-          <a href="/">Home</a>
-          <a href="/leaderboard">Leaderboard</a>
-          <a href="/onboard">Onboard</a>
-          <a href="/admin">Admin</a>
-          <a href="/status">Status</a>
+          {navItems.map((item) => (
+            <a href={item.href} aria-current={pathname === item.href ? 'page' : undefined}>
+              {item.label}
+            </a>
+          ))}
         </nav>
       </div>
     </header>
