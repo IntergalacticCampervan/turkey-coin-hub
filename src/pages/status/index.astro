@@ -1,0 +1,15 @@
+---
+import StatusCard from '../../components/status/StatusCard';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Status | Turkey Coin Hub">
+  <section class="panel" style="margin-bottom: 1rem;">
+    <h1>Status</h1>
+    <p>Runtime health from API + key non-secret env visibility.</p>
+    <ul>
+      <li><code>PUBLIC_WALLETCONNECT_PROJECT_ID</code>: {import.meta.env.PUBLIC_WALLETCONNECT_PROJECT_ID ? 'set' : 'missing'}</li>
+    </ul>
+  </section>
+  <StatusCard client:load />
+</BaseLayout>

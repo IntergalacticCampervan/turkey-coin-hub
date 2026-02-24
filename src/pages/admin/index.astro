@@ -1,0 +1,11 @@
+---
+import RewardPanel from '../../components/admin/RewardPanel';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Admin | Turkey Coin Hub">
+  <section class="panel" style="margin-bottom: 1rem; border-color: #f5cc8a; background: #fff9ef;">
+    <strong>Protected:</strong> this route should be behind Cloudflare Access policy in production.
+  </section>
+  <RewardPanel client:load />
+</BaseLayout>

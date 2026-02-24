@@ -1,17 +1,16 @@
 ---
-
+import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<BaseLayout title="Turkey Coin Hub">
+  <section class="panel">
+    <h1>Turkey Coin Hub MVP</h1>
+    <p>Internal tooling for onboarding, leaderboard visibility, and admin reward requests.</p>
+    <ul>
+      <li><a href="/leaderboard">Public Leaderboard</a></li>
+      <li><a href="/onboard">Self-service Onboarding</a></li>
+      <li><a href="/admin">Admin Reward Panel</a></li>
+      <li><a href="/status">System Status</a></li>
+    </ul>
+  </section>
+</BaseLayout>
