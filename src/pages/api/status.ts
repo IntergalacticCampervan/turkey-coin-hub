@@ -34,6 +34,8 @@ export const GET: APIRoute = async (context) => {
   const adminAllowlistConfigured = Boolean(
     authEnv.ADMIN_SUBJECT_ALLOWLIST?.trim() || authEnv.ADMIN_EMAIL_ALLOWLIST?.trim(),
   );
+  const accessJwtConfigured = Boolean(authEnv.CF_ACCESS_TEAM_DOMAIN?.trim() && authEnv.CF_ACCESS_AUD?.trim());
+  const adminBypassEnabled = authEnv.ADMIN_AUTH_BYPASS_LOCAL?.trim().toLowerCase() === 'true';
 
   return json({
     ok: true,
@@ -41,6 +43,8 @@ export const GET: APIRoute = async (context) => {
     d1Ping,
     chain: APP_CHAIN_META,
     adminAllowlistConfigured,
+    accessJwtConfigured,
+    adminBypassEnabled,
     now: new Date().toISOString(),
   });
 };

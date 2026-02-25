@@ -16,6 +16,7 @@
     "@rainbow-me/rainbowkit": "^2.2.10",
     "@tanstack/react-query": "^5.90.21",
     "astro": "^5.17.1",
+    "jose": "^6.1.3",
     "lucide-react": "^0.575.0",
     "viem": "^2.46.3",
     "wagmi": "^2.19.5",

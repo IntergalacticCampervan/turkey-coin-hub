@@ -10,6 +10,8 @@ type StatusResponse = {
     slug: string;
   };
   adminAllowlistConfigured: boolean;
+  accessJwtConfigured: boolean;
+  adminBypassEnabled: boolean;
   now: string;
 };
 
@@ -54,6 +56,10 @@ export default function StatusCard() {
           </dd>
           <dt>Admin Allowlist</dt>
           <dd>{status.adminAllowlistConfigured ? 'configured' : 'not configured'}</dd>
+          <dt>Access JWT Verify</dt>
+          <dd>{status.accessJwtConfigured ? 'configured' : 'not configured'}</dd>
+          <dt>Admin Auth Bypass</dt>
+          <dd>{status.adminBypassEnabled ? 'enabled' : 'disabled'}</dd>
           <dt>Server Time</dt>
           <dd>{status.now}</dd>
         </dl>

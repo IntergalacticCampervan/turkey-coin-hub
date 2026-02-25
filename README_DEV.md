@@ -9,7 +9,7 @@ npm install
 ## 2) Create D1 database
 
 ```bash
-npx wrangler d1 create turkey_coin_hub
+npx wrangler d1 create turkey-coin
 ```
 
 Copy the returned `database_id` and update `wrangler.toml`:
@@ -21,13 +21,13 @@ Copy the returned `database_id` and update `wrangler.toml`:
 Remote (Cloudflare D1):
 
 ```bash
-npx wrangler d1 execute turkey_coin_hub --file=schema.sql
+npx wrangler d1 execute turkey-coin --file=schema.sql
 ```
 
 Local (for wrangler local state):
 
 ```bash
-npx wrangler d1 execute turkey_coin_hub --local --file=schema.sql
+npx wrangler d1 execute turkey-coin --local --file=schema.sql
 ```
 
 ## 4) Configure env
@@ -38,6 +38,9 @@ Create `.env` (or set env in Cloudflare Pages project settings):
 PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id
 ADMIN_SUBJECT_ALLOWLIST=
 ADMIN_EMAIL_ALLOWLIST=
+CF_ACCESS_TEAM_DOMAIN=
+CF_ACCESS_AUD=
+ADMIN_AUTH_BYPASS_LOCAL=false
 ```
 
 `ADMIN_SUBJECT_ALLOWLIST` and `ADMIN_EMAIL_ALLOWLIST` are comma-separated.

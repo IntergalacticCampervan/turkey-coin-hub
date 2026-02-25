@@ -1,6 +1,11 @@
+import { createRemoteJWKSet, jwtVerify } from 'jose';
+
 export type AdminAuthEnv = {
   ADMIN_SUBJECT_ALLOWLIST?: string;
   ADMIN_EMAIL_ALLOWLIST?: string;
+  CF_ACCESS_TEAM_DOMAIN?: string;
+  CF_ACCESS_AUD?: string;
+  ADMIN_AUTH_BYPASS_LOCAL?: string;
 };
 
 export type AccessAuthResult =
@@ -29,48 +34,7 @@ function parseAllowlist(raw: string | undefined, lowercase = false): string[] {
     .map((value) => (lowercase ? value.toLowerCase() : value));
 }
 
-type JwtPayload = {
-  sub?: string;
-  email?: string;
-};
-
-function decodeBase64Url(value: string): string | null {
-  try {
-    const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
-    const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
-
-    if (typeof atob === 'function') {
-      return atob(padded);
-    }
-
-    return Buffer.from(padded, 'base64').toString('utf-8');
-  } catch {
-    return null;
-  }
-}
-
-function getJwtPayload(request: Request): JwtPayload | null {
-  const token = request.headers.get('CF-Access-Jwt-Assertion');
-  if (!token) {
-    return null;
-  }
-
-  const parts = token.split('.');
-  if (parts.length < 2) {
-    return null;
-  }
-
-  const decodedPayload = decodeBase64Url(parts[1]);
-  if (!decodedPayload) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(decodedPayload) as JwtPayload;
-  } catch {
-    return null;
-  }
-}
+let jwksCache = new Map<string, ReturnType<typeof createRemoteJWKSet>>();
 
 export function getAdminAuthEnv(locals: unknown): AdminAuthEnv {
   const runtimeEnv = (locals as { runtime?: { env?: AdminAuthEnv } } | undefined)?.runtime?.env;
@@ -81,57 +45,95 @@ export function getAdminAuthEnv(locals: unknown): AdminAuthEnv {
       runtimeEnv?.ADMIN_SUBJECT_ALLOWLIST ?? localEnv?.ADMIN_SUBJECT_ALLOWLIST ?? import.meta.env.ADMIN_SUBJECT_ALLOWLIST,
     ADMIN_EMAIL_ALLOWLIST:
       runtimeEnv?.ADMIN_EMAIL_ALLOWLIST ?? localEnv?.ADMIN_EMAIL_ALLOWLIST ?? import.meta.env.ADMIN_EMAIL_ALLOWLIST,
+    CF_ACCESS_TEAM_DOMAIN:
+      runtimeEnv?.CF_ACCESS_TEAM_DOMAIN ?? localEnv?.CF_ACCESS_TEAM_DOMAIN ?? import.meta.env.CF_ACCESS_TEAM_DOMAIN,
+    CF_ACCESS_AUD: runtimeEnv?.CF_ACCESS_AUD ?? localEnv?.CF_ACCESS_AUD ?? import.meta.env.CF_ACCESS_AUD,
+    ADMIN_AUTH_BYPASS_LOCAL:
+      runtimeEnv?.ADMIN_AUTH_BYPASS_LOCAL ??
+      localEnv?.ADMIN_AUTH_BYPASS_LOCAL ??
+      import.meta.env.ADMIN_AUTH_BYPASS_LOCAL,
   };
 }
 
-function getSubjectFromRequest(request: Request): string | null {
-  const cfSubject = request.headers.get('CF-Access-Authenticated-User-Subject');
-  if (cfSubject?.trim()) {
-    return cfSubject.trim();
-  }
-
-  const jwtPayload = getJwtPayload(request);
-  if (jwtPayload?.sub?.trim()) {
-    return jwtPayload.sub.trim();
-  }
-
+function getAuthToken(request: Request): string | null {
   const cfJwtAssertion = request.headers.get('CF-Access-Jwt-Assertion');
   if (cfJwtAssertion?.trim()) {
-    return 'cf-access-user';
+    return cfJwtAssertion.trim();
   }
 
   const authHeader = request.headers.get('Authorization');
   if (authHeader?.toLowerCase().startsWith('bearer ')) {
-    return 'bearer-user';
+    return authHeader.slice(7).trim();
   }
 
   return null;
 }
 
-function getEmailFromRequest(request: Request): string | null {
-  const email =
-    request.headers.get('CF-Access-Authenticated-User-Email') ||
-    request.headers.get('X-Auth-Request-Email');
-
-  if (email?.trim()) {
-    return email.trim().toLowerCase();
-  }
-
-  const jwtPayload = getJwtPayload(request);
-  if (jwtPayload?.email?.trim()) {
-    return jwtPayload.email.trim().toLowerCase();
-  }
-
-  return null;
+function toBool(input: string | undefined): boolean {
+  return input?.trim().toLowerCase() === 'true';
 }
 
-export function requireAccessAuth(request: Request, env: AdminAuthEnv): AccessAuthResult {
-  const subject = getSubjectFromRequest(request);
-  if (!subject) {
+function normalizeTeamDomain(teamDomain: string): string {
+  return teamDomain.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+}
+
+function getRemoteJwkSet(teamDomain: string) {
+  const normalized = normalizeTeamDomain(teamDomain);
+  const issuer = `https://${normalized}`;
+  const certsUrl = `${issuer}/cdn-cgi/access/certs`;
+
+  if (!jwksCache.has(certsUrl)) {
+    jwksCache.set(certsUrl, createRemoteJWKSet(new URL(certsUrl)));
+  }
+
+  return { issuer, jwks: jwksCache.get(certsUrl)! };
+}
+
+export async function requireAccessAuth(request: Request, env: AdminAuthEnv): Promise<AccessAuthResult> {
+  const token = getAuthToken(request);
+  if (!token) {
     return { ok: false, status: 401, error: 'Missing Cloudflare Access authentication headers' };
   }
 
-  const email = getEmailFromRequest(request);
+  const teamDomain = env.CF_ACCESS_TEAM_DOMAIN?.trim();
+  const audience = env.CF_ACCESS_AUD?.trim();
+  const bypassEnabled = toBool(env.ADMIN_AUTH_BYPASS_LOCAL);
+
+  if (!teamDomain || !audience) {
+    if (!bypassEnabled) {
+      return {
+        ok: false,
+        status: 401,
+        error: 'Cloudflare Access JWT verification is not configured (CF_ACCESS_TEAM_DOMAIN/CF_ACCESS_AUD)',
+      };
+    }
+
+    return {
+      ok: true,
+      subject: 'local-bypass-subject',
+      email: 'local-bypass@example.local',
+      warning: 'ADMIN_AUTH_BYPASS_LOCAL=true is enabled; JWT verification is bypassed.',
+    };
+  }
+
+  let subject = '';
+  let email: string | null = null;
+  try {
+    const { issuer, jwks } = getRemoteJwkSet(teamDomain);
+    const verified = await jwtVerify(token, jwks, {
+      issuer,
+      audience,
+    });
+
+    subject = String(verified.payload.sub ?? '').trim();
+    email = verified.payload.email ? String(verified.payload.email).trim().toLowerCase() : null;
+
+    if (!subject) {
+      return { ok: false, status: 401, error: 'JWT is missing subject claim' };
+    }
+  } catch {
+    return { ok: false, status: 401, error: 'Invalid Cloudflare Access JWT' };
+  }
 
   const subjectAllowlist = parseAllowlist(env.ADMIN_SUBJECT_ALLOWLIST);
   const emailAllowlist = parseAllowlist(env.ADMIN_EMAIL_ALLOWLIST, true);

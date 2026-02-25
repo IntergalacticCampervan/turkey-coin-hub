@@ -41,11 +41,13 @@ Implemented API routes:
   - reports DB binding/ping, chain meta, allowlist config state
 
 Current auth model:
-- Stub auth checks for presence of Cloudflare Access or Bearer headers
+- Cloudflare Access JWT verification using JWKS (`CF-Access-Jwt-Assertion` / Bearer token)
+- Validates issuer + audience (`CF_ACCESS_TEAM_DOMAIN`, `CF_ACCESS_AUD`)
 - Additional allowlist checks:
   - `ADMIN_SUBJECT_ALLOWLIST`
   - `ADMIN_EMAIL_ALLOWLIST`
-- Full JWT verification is not implemented yet
+- Optional local-only bypass:
+  - `ADMIN_AUTH_BYPASS_LOCAL=true`
 
 ## Data Model
 
@@ -72,6 +74,9 @@ Required:
 Admin controls:
 - `ADMIN_SUBJECT_ALLOWLIST` (comma-separated)
 - `ADMIN_EMAIL_ALLOWLIST` (comma-separated)
+- `CF_ACCESS_TEAM_DOMAIN` (e.g. `yourteam.cloudflareaccess.com`)
+- `CF_ACCESS_AUD` (Cloudflare Access app audience tag)
+- `ADMIN_AUTH_BYPASS_LOCAL` (`true`/`false`, default `false`)
 
 ## Commands
 
@@ -85,6 +90,5 @@ Admin controls:
 
 ## Known Gaps / TODO
 
-- Implement real Cloudflare Access JWT verification in API auth
 - Implement real mint execution + tx hash/status updates
 - Add balance sync job (on-chain -> `balance_cache`)

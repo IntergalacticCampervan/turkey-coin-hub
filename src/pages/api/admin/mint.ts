@@ -27,7 +27,7 @@ function randomId() {
 }
 
 export const POST: APIRoute = async (context) => {
-  const auth = requireAccessAuth(context.request, getAdminAuthEnv(context.locals));
+  const auth = await requireAccessAuth(context.request, getAdminAuthEnv(context.locals));
   if (!auth.ok) {
     return json({ ok: false, error: auth.error }, auth.status);
   }
