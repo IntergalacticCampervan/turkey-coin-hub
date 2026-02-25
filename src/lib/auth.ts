@@ -29,6 +29,49 @@ function parseAllowlist(raw: string | undefined, lowercase = false): string[] {
     .map((value) => (lowercase ? value.toLowerCase() : value));
 }
 
+type JwtPayload = {
+  sub?: string;
+  email?: string;
+};
+
+function decodeBase64Url(value: string): string | null {
+  try {
+    const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
+
+    if (typeof atob === 'function') {
+      return atob(padded);
+    }
+
+    return Buffer.from(padded, 'base64').toString('utf-8');
+  } catch {
+    return null;
+  }
+}
+
+function getJwtPayload(request: Request): JwtPayload | null {
+  const token = request.headers.get('CF-Access-Jwt-Assertion');
+  if (!token) {
+    return null;
+  }
+
+  const parts = token.split('.');
+  if (parts.length < 2) {
+    return null;
+  }
+
+  const decodedPayload = decodeBase64Url(parts[1]);
+  if (!decodedPayload) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(decodedPayload) as JwtPayload;
+  } catch {
+    return null;
+  }
+}
+
 export function getAdminAuthEnv(locals: unknown): AdminAuthEnv {
   const runtimeEnv = (locals as { runtime?: { env?: AdminAuthEnv } } | undefined)?.runtime?.env;
   const localEnv = locals as AdminAuthEnv | undefined;
@@ -45,6 +88,11 @@ function getSubjectFromRequest(request: Request): string | null {
   const cfSubject = request.headers.get('CF-Access-Authenticated-User-Subject');
   if (cfSubject?.trim()) {
     return cfSubject.trim();
+  }
+
+  const jwtPayload = getJwtPayload(request);
+  if (jwtPayload?.sub?.trim()) {
+    return jwtPayload.sub.trim();
   }
 
   const cfJwtAssertion = request.headers.get('CF-Access-Jwt-Assertion');
@@ -65,7 +113,16 @@ function getEmailFromRequest(request: Request): string | null {
     request.headers.get('CF-Access-Authenticated-User-Email') ||
     request.headers.get('X-Auth-Request-Email');
 
-  return email?.trim().toLowerCase() || null;
+  if (email?.trim()) {
+    return email.trim().toLowerCase();
+  }
+
+  const jwtPayload = getJwtPayload(request);
+  if (jwtPayload?.email?.trim()) {
+    return jwtPayload.email.trim().toLowerCase();
+  }
+
+  return null;
 }
 
 export function requireAccessAuth(request: Request, env: AdminAuthEnv): AccessAuthResult {
