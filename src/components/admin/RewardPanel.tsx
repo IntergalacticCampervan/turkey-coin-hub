@@ -274,11 +274,11 @@ function RewardPanelInner() {
         ))}
       </ul>
 
-      <section className="panel" style="margin-top: 1rem;">
-        <h3 style="margin-top: 0;">Mint Events</h3>
+      <section className="panel" style={{ marginTop: '1rem' }}>
+        <h3 style={{ marginTop: 0 }}>Mint Events</h3>
         <p className="hint">Newest first. Submitted/confirmed should come from worker, not normal UI flow.</p>
 
-        <div className="stack" style="margin-bottom: 1rem;">
+        <div className="stack" style={{ marginBottom: '1rem' }}>
           <label htmlFor="filterStatus">Filter status</label>
           <select
             id="filterStatus"
@@ -358,9 +358,9 @@ function RewardPanelInner() {
           </tbody>
         </table>
 
-        <details style="margin-top: 1rem;">
+        <details style={{ marginTop: '1rem' }}>
           <summary>Danger Zone: Manual Overrides</summary>
-          <div className="stack" style="margin-top: 0.75rem;">
+          <div className="stack" style={{ marginTop: '0.75rem' }}>
             <label>
               <input
                 type="checkbox"
@@ -381,7 +381,7 @@ function RewardPanelInner() {
             />
           </div>
 
-          <ul className="user-list" style="margin-top: 1rem;">
+          <ul className="user-list" style={{ marginTop: '1rem' }}>
             {mintEvents.map((event) => (
               <li key={`override-${event.id}`}>
                 <div>
