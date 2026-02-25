@@ -30,6 +30,18 @@ function randomId() {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  return '';
+}
+
 export const POST: APIRoute = async (context) => {
   const db = getDB(context);
   if (!db) {
@@ -111,7 +123,26 @@ export const POST: APIRoute = async (context) => {
       .run();
 
     return json({ ok: true });
-  } catch {
-    return json({ ok: false, error: 'Handle already taken' }, 409);
+  } catch (error) {
+    const message = getErrorMessage(error);
+
+    if (message.toLowerCase().includes('no such table')) {
+      return json(
+        { ok: false, error: 'Database schema not initialized. Run schema/migrations for D1 first.' },
+        500,
+      );
+    }
+
+    if (message.toLowerCase().includes('unique constraint failed')) {
+      if (message.includes('users.handle')) {
+        return json({ ok: false, error: 'Handle already taken' }, 409);
+      }
+
+      if (message.includes('users.wallet_address')) {
+        return json({ ok: false, error: 'Wallet is already onboarded' }, 409);
+      }
+    }
+
+    return json({ ok: false, error: 'Failed to onboard due to a database error' }, 500);
   }
 };
