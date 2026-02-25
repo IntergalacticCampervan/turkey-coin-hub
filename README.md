@@ -1,43 +1,90 @@
-# Astro Starter Kit: Minimal
+# Turkey Coin Hub
 
-```sh
-npm create astro@latest -- --template minimal
-```
+Internal Astro + React MVP for:
+- wallet onboarding (`wallet_address -> handle`)
+- public leaderboard (read-only)
+- admin reward queueing (mint requests)
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## Overview
 
-## 🚀 Project Structure
+- Frontend: Astro pages + React islands
+- Web3: RainbowKit + wagmi + React Query
+- Runtime/Deploy: Cloudflare Pages Functions (`@astrojs/cloudflare`)
+- Database: Cloudflare D1 (`DB` binding)
+- Chain default: Sepolia (centralized in `src/lib/chain.ts`)
 
-Inside of your Astro project, you'll see the following folders and files:
+## Current State
 
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
-```
+Implemented routes:
+- `/` home links
+- `/leaderboard` public leaderboard
+- `/onboard` self-service onboarding
+- `/admin` admin reward panel UI
+- `/status` runtime health
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+Implemented API routes:
+- `GET /api/leaderboard`
+  - joins `users` + `balance_cache`
+  - sorts by balance desc, then handle asc
+  - returns `[]` with `x-no-db: true` if DB missing
+- `POST /api/onboard`
+  - validates wallet + handle
+  - enforces unique handle ownership
+  - inserts or updates user
+- `GET /api/users` (admin)
+  - requires access headers + allowlist checks
+- `POST /api/admin/mint` (admin)
+  - validates payload
+  - writes `mint_events` with status `queued`
+  - returns `{ ok, eventId, txHash: null }`
+- `GET /api/status`
+  - reports DB binding/ping, chain meta, allowlist config state
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+Current auth model:
+- Stub auth checks for presence of Cloudflare Access or Bearer headers
+- Additional allowlist checks:
+  - `ADMIN_SUBJECT_ALLOWLIST`
+  - `ADMIN_EMAIL_ALLOWLIST`
+- Full JWT verification is not implemented yet
 
-Any static assets, like images, can be placed in the `public/` directory.
+## Data Model
 
-## 🧞 Commands
+Primary schema is in `schema.sql`:
+- `users`
+- `balance_cache`
+- `mint_events`
 
-All commands are run from the root of the project, from a terminal:
+## Local/Prod Setup
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+Use the dedicated runbook:
+- `README_DEV.md`
 
-## 👀 Want to learn more?
+Key requirements:
+- D1 binding name must be `DB`
+- schema/migrations must be applied to the bound production DB
+- env vars must be set in Cloudflare Pages (Preview + Production)
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+## Environment Variables
+
+Required:
+- `PUBLIC_WALLETCONNECT_PROJECT_ID`
+
+Admin controls:
+- `ADMIN_SUBJECT_ALLOWLIST` (comma-separated)
+- `ADMIN_EMAIL_ALLOWLIST` (comma-separated)
+
+## Commands
+
+| Command | Description |
+|---|---|
+| `npm install` | Install dependencies |
+| `npm run dev` | Astro local dev server |
+| `npm run build` | Build for Cloudflare Pages Functions |
+| `npm run dev:cf` | Run Pages local runtime from `./dist` |
+| `npm run deploy` | Deploy `./dist` with wrangler |
+
+## Known Gaps / TODO
+
+- Implement real Cloudflare Access JWT verification in API auth
+- Implement real mint execution + tx hash/status updates
+- Add balance sync job (on-chain -> `balance_cache`)
