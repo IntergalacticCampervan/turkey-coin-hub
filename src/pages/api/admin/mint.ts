@@ -1,6 +1,7 @@
 import type { APIRoute } from 'astro';
 
 import { getAdminAuthEnv, requireAccessAuth } from '../../../lib/auth';
+import { APP_CHAIN_META } from '../../../lib/chain';
 import { getDB } from '../../../lib/db';
 
 export const prerender = false;
@@ -64,6 +65,7 @@ export const POST: APIRoute = async (context) => {
   }
 
   const eventId = randomId();
+  const now = new Date().toISOString();
 
   try {
     await db
@@ -71,22 +73,45 @@ export const POST: APIRoute = async (context) => {
         `
           INSERT INTO mint_events (
             id,
+            to_wallet,
+            amount_raw,
+            chain_id,
+            status,
+            idempotency_key,
+            tx_hash,
+            requested_by_sub,
+            requested_by_email,
+            created_at,
+
+            -- legacy compatibility
             wallet_address,
             amount,
             reason,
-            idempotency_key,
             mint_tx_hash,
-            status,
-            created_at,
+            queued_at,
             admin_subject
           )
-          VALUES (?, ?, ?, ?, ?, NULL, 'queued', ?, ?)
+          VALUES (?, ?, ?, ?, 'queued', ?, NULL, ?, ?, ?, ?, ?, ?, NULL, ?, ?)
         `,
       )
-      .bind(eventId, walletAddress, amount, reason, idempotencyKey, new Date().toISOString(), auth.subject)
+      .bind(
+        eventId,
+        walletAddress,
+        String(amount),
+        APP_CHAIN_META.id,
+        idempotencyKey,
+        auth.subject,
+        auth.email,
+        now,
+        walletAddress,
+        amount,
+        reason,
+        now,
+        auth.subject,
+      )
       .run();
 
-    // TODO: call Cloudflare Worker signer / contract mint and then persist mint_tx_hash + final status.
+    // TODO: signer worker should pick queued events, submit tx, and move status to submitted/confirmed/failed.
     return json({ ok: true, eventId, txHash: null }, 200, warningHeaders);
   } catch {
     return json(

@@ -18,6 +18,15 @@ Copy the returned `database_id` and update `wrangler.toml`:
 
 ## 3) Apply schema
 
+Canonical schema is managed via `migrations/`. Prefer migrations over direct schema file execution.
+
+Migrations (recommended):
+
+```bash
+npx wrangler d1 migrations apply turkey-coin --local
+npx wrangler d1 migrations apply turkey-coin
+```
+
 Remote (Cloudflare D1):
 
 ```bash

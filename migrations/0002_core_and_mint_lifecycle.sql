@@ -1,4 +1,4 @@
--- Snapshot schema for reference. Canonical source of truth is migrations/.
+-- Migration number: 0002 \t 2026-02-25T00:00:00.000Z
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   wallet_address TEXT UNIQUE NOT NULL,
@@ -15,26 +15,18 @@ CREATE TABLE IF NOT EXISTS balance_cache (
 
 CREATE TABLE IF NOT EXISTS mint_events (
   id TEXT PRIMARY KEY,
-  to_wallet TEXT NOT NULL,
-  amount_raw TEXT NOT NULL,
-  chain_id INTEGER NOT NULL,
-  status TEXT NOT NULL,
+  wallet_address TEXT NOT NULL,
+  amount INTEGER NOT NULL,
+  reason TEXT NOT NULL,
   idempotency_key TEXT UNIQUE NOT NULL,
-  tx_hash TEXT,
-  requested_by_sub TEXT,
-  requested_by_email TEXT,
+  mint_tx_hash TEXT,
+  status TEXT NOT NULL,
   created_at TEXT NOT NULL,
+  updated_at TEXT,
+  queued_at TEXT,
   submitted_at TEXT,
   confirmed_at TEXT,
   failed_at TEXT,
   failure_reason TEXT,
-
-  -- Legacy compatibility columns retained during migration period.
-  wallet_address TEXT,
-  amount INTEGER,
-  reason TEXT,
-  mint_tx_hash TEXT,
-  updated_at TEXT,
-  queued_at TEXT,
   admin_subject TEXT
 );

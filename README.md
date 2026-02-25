@@ -51,7 +51,11 @@ Current auth model:
 
 ## Data Model
 
-Primary schema is in `schema.sql`:
+Canonical schema source is `migrations/`.
+
+`schema.sql` is a snapshot/reference and should be treated as generated documentation, not the source of truth.
+
+Core tables:
 - `users`
 - `balance_cache`
 - `mint_events`
