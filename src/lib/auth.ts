@@ -73,6 +73,18 @@ function toBool(input: string | undefined): boolean {
   return input?.trim().toLowerCase() === 'true';
 }
 
+function parseAudiences(raw: string | undefined): string[] {
+  if (!raw) {
+    return [];
+  }
+
+  return raw
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean)
+    .map((value) => value.replace(/^['"]|['"]$/g, ''));
+}
+
 function normalizeTeamDomain(teamDomain: string): string {
   return teamDomain.replace(/^https?:\/\//, '').replace(/\/+$/, '');
 }
@@ -96,10 +108,10 @@ export async function requireAccessAuth(request: Request, env: AdminAuthEnv): Pr
   }
 
   const teamDomain = env.CF_ACCESS_TEAM_DOMAIN?.trim();
-  const audience = env.CF_ACCESS_AUD?.trim();
+  const audiences = parseAudiences(env.CF_ACCESS_AUD);
   const bypassEnabled = toBool(env.ADMIN_AUTH_BYPASS_LOCAL);
 
-  if (!teamDomain || !audience) {
+  if (!teamDomain || audiences.length === 0) {
     if (!bypassEnabled) {
       return {
         ok: false,
@@ -122,7 +134,7 @@ export async function requireAccessAuth(request: Request, env: AdminAuthEnv): Pr
     const { issuer, jwks } = getRemoteJwkSet(teamDomain);
     const verified = await jwtVerify(token, jwks, {
       issuer,
-      audience,
+      audience: audiences.length === 1 ? audiences[0] : audiences,
     });
 
     subject = String(verified.payload.sub ?? '').trim();
