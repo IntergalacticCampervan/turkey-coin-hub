@@ -4,6 +4,6 @@ pages_build_output_dir = "./dist"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "turkey_coin_hub"
-database_id = "REPLACE_WITH_D1_DATABASE_ID"
-preview_database_id = "REPLACE_WITH_D1_PREVIEW_DATABASE_ID"
+database_name = "turkey-coin"
+database_id = "6fdfc623-409b-4dbd-ba77-3331187f1771"
+preview_database_id = "6fdfc623-409b-4dbd-ba77-3331187f1771"
