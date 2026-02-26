@@ -1,4 +1,4 @@
-import { Shield, Trophy, UserPlus, Activity } from 'lucide-react';
+import { Shield, Trophy, Activity } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 
@@ -8,7 +8,6 @@ import { StatusBadge, TerminalText } from './TerminalPrimitives';
 
 const NAV_ITEMS = [
   { to: '/', label: 'DASHBOARD', icon: Trophy },
-  { to: '/onboard', label: 'ONBOARD', icon: UserPlus },
   { to: '/admin', label: 'ADMIN', icon: Shield },
   { to: '/status', label: 'STATUS', icon: Activity },
 ];

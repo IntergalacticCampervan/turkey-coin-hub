@@ -1,19 +1,86 @@
-import { ArrowRight, CheckCircle2, Link2, Wallet } from 'lucide-react';
-import { useState } from 'react';
+import { CheckCircle2, Link2, Wallet } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useAccount } from 'wagmi';
 
 import ConnectWalletButton from '../../components/web3/ConnectWalletButton';
+import DecryptedText from '../../components/DecryptedText';
 import { postOnboard } from '../lib/api';
 import { DataPanel, StatusBadge, TerminalText } from '../components/TerminalPrimitives';
 
 type Step = 'welcome' | 'wallet' | 'verify' | 'complete';
 
-export function OnboardingView() {
+type OnboardingViewProps = {
+  fullscreen?: boolean;
+  gateReason?: 'wallet_disconnected' | 'wallet_not_onboarded' | 'verification_failed' | null;
+  gateError?: string | null;
+  onOnboardingComplete?: () => void;
+  onRetryGateCheck?: () => void;
+};
+
+function shortWallet(wallet: string): string {
+  return wallet.length > 12 ? `${wallet.slice(0, 6)}...${wallet.slice(-4)}` : wallet;
+}
+
+function validateHandle(handle: string): string | null {
+  const trimmed = handle.trim();
+  if (!trimmed) {
+    return 'Use 3-24 characters: letters, numbers, underscore.';
+  }
+
+  if (!/^[a-zA-Z0-9_]{3,24}$/.test(trimmed)) {
+    return 'Handle must be 3-24 letters, numbers, or underscore.';
+  }
+
+  return null;
+}
+
+export function OnboardingView({
+  fullscreen = false,
+  gateReason = null,
+  gateError = null,
+  onOnboardingComplete,
+  onRetryGateCheck,
+}: OnboardingViewProps) {
   const { address, isConnected } = useAccount();
-  const [step, setStep] = useState<Step>('welcome');
+  const [step, setStep] = useState<Step>(isConnected ? 'wallet' : 'welcome');
   const [handle, setHandle] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [lastWallet, setLastWallet] = useState('');
+  const handleError = useMemo(() => validateHandle(handle), [handle]);
+
+  useEffect(() => {
+    if (isConnected) {
+      setStep('wallet');
+    }
+  }, [isConnected]);
+
+  useEffect(() => {
+    if (!address) {
+      return;
+    }
+
+    window.localStorage.setItem('turkeycoin:lastWallet', address);
+    setLastWallet(address);
+  }, [address]);
+
+  useEffect(() => {
+    if (address) {
+      return;
+    }
+
+    const stored = window.localStorage.getItem('turkeycoin:lastWallet') || '';
+    setLastWallet(stored);
+  }, [address]);
+
+  const gateReasonLabel =
+    gateReason === 'wallet_disconnected'
+      ? 'Wallet not connected.'
+      : gateReason === 'wallet_not_onboarded'
+        ? 'Wallet not onboarded yet.'
+        : gateReason === 'verification_failed'
+          ? 'Verification failed.'
+          : null;
 
   async function submitOnboard(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -24,8 +91,9 @@ export function OnboardingView() {
       return;
     }
 
-    if (!/^[a-zA-Z0-9_]{3,24}$/.test(handle.trim())) {
-      setError('Handle must be 3-24 letters, numbers, or underscore.');
+    const candidateHandleError = validateHandle(handle);
+    if (candidateHandleError) {
+      setError(candidateHandleError);
       return;
     }
 
@@ -42,9 +110,22 @@ export function OnboardingView() {
   }
 
   return (
-    <div className="view-grid narrow">
+    <div className={`view-grid narrow ${fullscreen ? 'onboarding-fullscreen' : ''}`.trim()}>
+      {gateReasonLabel ? (
+        <div className="gate-notice">
+          <TerminalText className="muted-text">{gateReasonLabel}</TerminalText>
+          {gateReason === 'verification_failed' && onRetryGateCheck ? (
+            <button type="button" className="source-connect-btn secondary" onClick={onRetryGateCheck}>
+              RETRY STATUS CHECK
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="onboard-hero">
-        <h1 className="view-title">TURKEY COIN</h1>
+        <h1 className="view-title">
+          <DecryptedText text="TURKEY COIN" animateOn="view" sequential speed={40} />
+        </h1>
         <TerminalText as="p" className="muted-text">
           WALLET ONBOARDING SEQUENCE
         </TerminalText>
@@ -74,46 +155,61 @@ export function OnboardingView() {
             <TerminalText as="p" className="muted-text">
               Turkey Coin is our internal system for recognizing contributions and rewarding execution.
             </TerminalText>
-            <button type="button" className="primary-cta" onClick={() => setStep('wallet')}>
-              BEGIN ONBOARDING <ArrowRight size={18} />
-            </button>
+            <div className="onboard-cta-stack onboard-sticky-cta">
+              <ConnectWalletButton />
+              <button type="button" className="source-connect-btn secondary" onClick={() => setStep('wallet')}>
+                NEED ONBOARDING? START SETUP
+              </button>
+            </div>
+            {lastWallet ? (
+              <TerminalText as="p" className="muted-text">Last used: {shortWallet(lastWallet)}</TerminalText>
+            ) : null}
           </div>
         </DataPanel>
       ) : null}
 
       {step === 'wallet' ? (
         <DataPanel title="[ WALLET CONNECTION ]" status="active">
-          <form onSubmit={submitOnboard} className="form-stack">
-            <label htmlFor="handle">Username / Handle</label>
-            <input
-              id="handle"
-              type="text"
-              value={handle}
-              onChange={(event) => setHandle(event.target.value)}
-              placeholder="Enter your username..."
-              minLength={3}
-              maxLength={24}
-              required
-            />
-
-            <label>Wallet Address</label>
-            <div className="wallet-connect-row source-wallet-row">
-              <input
-                type="text"
-                value={isConnected && address ? address : ''}
-                readOnly
-                placeholder="Connect wallet to populate"
-              />
+          {!isConnected ? (
+            <div className="onboard-center">
+              <TerminalText className="panel-heading glow">WALLET REQUIRED</TerminalText>
+              <TerminalText className="muted-text">
+                Connect your wallet to continue. If this wallet was already onboarded, you will skip setup.
+              </TerminalText>
               <ConnectWalletButton />
             </div>
+          ) : (
+            <form onSubmit={submitOnboard} className="form-stack">
+              <label htmlFor="handle">Username / Handle</label>
+              <input
+                id="handle"
+                type="text"
+                value={handle}
+                onChange={(event) => setHandle(event.target.value)}
+                placeholder="Enter your username..."
+                minLength={3}
+                maxLength={24}
+                required
+              />
+              <TerminalText className={`muted-text ${handleError ? 'handle-help-error' : ''}`}>
+                {handleError || 'Handle format looks good.'}
+              </TerminalText>
 
-            <TerminalText className="muted-text">Use the Connect action to link your wallet.</TerminalText>
+              <label>Wallet Address</label>
+              <div className="wallet-connect-row source-wallet-row">
+                <input type="text" value={address || ''} readOnly />
+                <ConnectWalletButton />
+              </div>
 
-            <button type="submit" className="primary-cta" disabled={!isConnected}>
-              VERIFY WALLET <Link2 size={16} />
-            </button>
-          </form>
+              <TerminalText className="muted-text">Use the Verify action to finish onboarding.</TerminalText>
 
+              <button type="submit" className="primary-cta onboard-sticky-cta" disabled={Boolean(handleError)}>
+                VERIFY WALLET <Link2 size={16} />
+              </button>
+            </form>
+          )}
+
+          {gateError && !gateReasonLabel ? <p className="warning-text">{gateError}</p> : null}
           {error ? <p className="error-text">{error}</p> : null}
         </DataPanel>
       ) : null}
@@ -142,9 +238,15 @@ export function OnboardingView() {
                 <TerminalText>{address || '-'}</TerminalText>
               </div>
             </div>
-            <a className="primary-cta" href="/">
-              ENTER SYSTEM
-            </a>
+            {onOnboardingComplete ? (
+              <button type="button" className="primary-cta" onClick={onOnboardingComplete}>
+                ENTER SYSTEM
+              </button>
+            ) : (
+              <a className="primary-cta" href="/">
+                ENTER SYSTEM
+              </a>
+            )}
           </div>
         </DataPanel>
       ) : null}

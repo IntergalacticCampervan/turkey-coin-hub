@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 
-import logo from '../assets/turkey-coin-logo.png';
 import { TerminalText } from './TerminalPrimitives';
 
 const BOOT_LINES = [
@@ -15,18 +14,29 @@ const BOOT_LINES = [
 ];
 
 export function BootSequence({ onComplete }: { onComplete: () => void }) {
-  const [phase, setPhase] = useState<'boot' | 'reveal'>('boot');
+  const logo = '/Turkeycoin.svg';
+  const [phase, setPhase] = useState<'boot' | 'hold' | 'logo' | 'exit'>('boot');
   const [lines, setLines] = useState<string[]>([]);
 
   useEffect(() => {
-    if (phase === 'reveal') {
-      const doneTimer = window.setTimeout(onComplete, 800);
+    if (phase === 'hold') {
+      const holdTimer = window.setTimeout(() => setPhase('logo'), 850);
+      return () => window.clearTimeout(holdTimer);
+    }
+
+    if (phase === 'logo') {
+      const logoTimer = window.setTimeout(() => setPhase('exit'), 1800);
+      return () => window.clearTimeout(logoTimer);
+    }
+
+    if (phase === 'exit') {
+      const doneTimer = window.setTimeout(onComplete, 950);
       return () => window.clearTimeout(doneTimer);
     }
 
     if (lines.length >= BOOT_LINES.length) {
-      const revealTimer = window.setTimeout(() => setPhase('reveal'), 450);
-      return () => window.clearTimeout(revealTimer);
+      const holdTimer = window.setTimeout(() => setPhase('hold'), 380);
+      return () => window.clearTimeout(holdTimer);
     }
 
     const lineTimer = window.setTimeout(() => {
@@ -36,13 +46,16 @@ export function BootSequence({ onComplete }: { onComplete: () => void }) {
     return () => window.clearTimeout(lineTimer);
   }, [lines, phase, onComplete]);
 
-  if (phase === 'reveal') {
+  if (phase === 'logo' || phase === 'exit') {
     return (
-      <div className="boot-screen fade-out">
-        <img src={logo} alt="Turkey Coin" className="boot-logo" />
-        <TerminalText glow className="boot-title">
-          LAUNCHING TURKEY COIN
-        </TerminalText>
+      <div className={`boot-screen ${phase === 'exit' ? 'fade-out' : ''}`}>
+        <div className="boot-logo-wrap">
+          <img src={logo} alt="Turkey Coin" className="boot-logo" />
+          <TerminalText glow className="boot-title">
+            LAUNCHING TURKEY COIN
+          </TerminalText>
+          <TerminalText className="boot-subtitle muted-text">SYSTEM LINK STABILIZED</TerminalText>
+        </div>
       </div>
     );
   }

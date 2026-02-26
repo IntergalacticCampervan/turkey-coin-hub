@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+import DecryptedText from '../../components/DecryptedText';
 import { getStatus } from '../lib/api';
 import type { StatusResponse } from '../lib/types';
 import { DataPanel, TerminalText } from '../components/TerminalPrimitives';
@@ -27,7 +28,9 @@ export function StatusView() {
     <div className="view-grid narrow">
       <div className="view-header">
         <div>
-          <h1 className="view-title">SYSTEM STATUS</h1>
+          <h1 className="view-title">
+            <DecryptedText text="SYSTEM STATUS" animateOn="view" sequential speed={40} />
+          </h1>
           <TerminalText as="p" className="muted-text">
             LIVE API HEALTH + RUNTIME CONFIG CHECKS
           </TerminalText>
