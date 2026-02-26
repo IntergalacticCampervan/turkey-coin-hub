@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { useAccount } from 'wagmi';
+import { useAccount, useReconnect } from 'wagmi';
 
 import Web3Provider from '../components/web3/Web3Provider';
 import { AppShell } from './components/AppShell';
@@ -34,10 +34,60 @@ function hasWalletOnboarded(rows: unknown[], walletAddress: string): boolean {
 
 function PlatformGate() {
   const { address, isConnected } = useAccount();
+  const { reconnectAsync } = useReconnect();
   const [gateState, setGateState] = useState<GateState>('checking');
   const [gateReason, setGateReason] = useState<GateReason>(null);
   const [gateError, setGateError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    let isRunning = false;
+
+    const resumeSession = async () => {
+      if (!active || isRunning) {
+        return;
+      }
+
+      isRunning = true;
+      try {
+        // Mobile wallet deep links can return focus without propagating connection state.
+        await reconnectAsync();
+      } catch {
+        // Ignore reconnect errors and allow gate check to handle state.
+      } finally {
+        if (active) {
+          setRefreshToken((value) => value + 1);
+        }
+        isRunning = false;
+      }
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void resumeSession();
+      }
+    };
+
+    const onWindowFocus = () => {
+      void resumeSession();
+    };
+
+    const onPageShow = () => {
+      void resumeSession();
+    };
+
+    window.addEventListener('focus', onWindowFocus);
+    window.addEventListener('pageshow', onPageShow);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      active = false;
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('focus', onWindowFocus);
+      window.removeEventListener('pageshow', onPageShow);
+    };
+  }, [reconnectAsync]);
 
   useEffect(() => {
     let cancelled = false;
