@@ -1,6 +1,10 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 
-export default function ConnectWalletButton() {
+type ConnectWalletButtonProps = {
+  disconnectedLabel?: string;
+};
+
+export default function ConnectWalletButton({ disconnectedLabel = 'CONNECT WALLET' }: ConnectWalletButtonProps) {
   return (
     <ConnectButton.Custom>
       {({ account, chain, openAccountModal, openChainModal, openConnectModal, mounted }) => {
@@ -10,7 +14,7 @@ export default function ConnectWalletButton() {
         if (!connected) {
           return (
             <button type="button" className="source-connect-btn" onClick={openConnectModal}>
-              CONNECT WALLET
+              {disconnectedLabel}
             </button>
           );
         }

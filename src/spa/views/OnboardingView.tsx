@@ -18,10 +18,6 @@ type OnboardingViewProps = {
   onRetryGateCheck?: () => void;
 };
 
-function shortWallet(wallet: string): string {
-  return wallet.length > 12 ? `${wallet.slice(0, 6)}...${wallet.slice(-4)}` : wallet;
-}
-
 function validateHandle(handle: string): string | null {
   const trimmed = handle.trim();
   if (!trimmed) {
@@ -35,6 +31,10 @@ function validateHandle(handle: string): string | null {
   return null;
 }
 
+function normalizeHandleInput(raw: string): string {
+  return raw.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 24);
+}
+
 export function OnboardingView({
   fullscreen = false,
   gateReason = null,
@@ -46,7 +46,6 @@ export function OnboardingView({
   const [step, setStep] = useState<Step>(isConnected ? 'wallet' : 'welcome');
   const [handle, setHandle] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [lastWallet, setLastWallet] = useState('');
   const handleError = useMemo(() => validateHandle(handle), [handle]);
 
   useEffect(() => {
@@ -54,24 +53,6 @@ export function OnboardingView({
       setStep('wallet');
     }
   }, [isConnected]);
-
-  useEffect(() => {
-    if (!address) {
-      return;
-    }
-
-    window.localStorage.setItem('turkeycoin:lastWallet', address);
-    setLastWallet(address);
-  }, [address]);
-
-  useEffect(() => {
-    if (address) {
-      return;
-    }
-
-    const stored = window.localStorage.getItem('turkeycoin:lastWallet') || '';
-    setLastWallet(stored);
-  }, [address]);
 
   const gateReasonLabel =
     gateReason === 'wallet_disconnected'
@@ -151,19 +132,20 @@ export function OnboardingView({
         <DataPanel status="active">
           <div className="onboard-center">
             <Wallet size={56} className="accent-icon" />
-            <h2 className="panel-heading">WELCOME TO TURKEY COIN</h2>
+            <h2 className="panel-heading">CONNECT YOUR WALLET</h2>
             <TerminalText as="p" className="muted-text">
-              Turkey Coin is our internal system for recognizing contributions and rewarding execution.
+              Welcome to the Intergalactic Farmhouse. Turkey Coin is our internal cryptocurrency for recognizing
+              contribution and rewarding execution. It is like Gladiator, without the skirts.
             </TerminalText>
             <div className="onboard-cta-stack onboard-sticky-cta">
-              <ConnectWalletButton />
-              <button type="button" className="source-connect-btn secondary" onClick={() => setStep('wallet')}>
-                NEED ONBOARDING? START SETUP
+              <button type="button" className="primary-cta" onClick={() => setStep('wallet')}>
+                GET STARTED
               </button>
+              <ConnectWalletButton disconnectedLabel="RETURNING USER? CONNECT WALLET" />
+              <a href="/help/wallet-setup" className="source-connect-btn secondary">
+                NEED HELP?
+              </a>
             </div>
-            {lastWallet ? (
-              <TerminalText as="p" className="muted-text">Last used: {shortWallet(lastWallet)}</TerminalText>
-            ) : null}
           </div>
         </DataPanel>
       ) : null}
@@ -185,8 +167,13 @@ export function OnboardingView({
                 id="handle"
                 type="text"
                 value={handle}
-                onChange={(event) => setHandle(event.target.value)}
+                onChange={(event) => setHandle(normalizeHandleInput(event.target.value))}
                 placeholder="Enter your username..."
+                pattern="[a-zA-Z0-9_]{3,24}"
+                title="Use 3-24 letters, numbers, or underscore."
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck={false}
                 minLength={3}
                 maxLength={24}
                 required

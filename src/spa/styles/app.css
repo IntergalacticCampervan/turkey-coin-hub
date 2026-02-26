@@ -562,6 +562,10 @@ th {
   white-space: nowrap;
   padding: 0.65rem 0.75rem;
   min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
 }
 
 .source-connect-btn.secondary {
