@@ -1,0 +1,160 @@
+---
+export const prerender = false;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0a0c0f" />
+    <link rel="icon" type="image/svg+xml" href="/Turkeycoin.svg" />
+    <title>Wallet Setup Guide | Turkey Coin Hub</title>
+    <style>
+      :root {
+        --phosphor-primary: #ff7a00;
+        --phosphor-accent: #00e0c6;
+        --line: rgba(255, 145, 38, 0.45);
+        --line-soft: rgba(255, 145, 38, 0.28);
+        --bg-core: #0f131a;
+        --bg-panel: rgba(16, 20, 28, 0.9);
+        --text-muted: rgba(255, 158, 56, 0.72);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        padding: 1rem;
+        color: var(--phosphor-primary);
+        font-family: 'Share Tech Mono', 'Courier Prime', 'Courier New', monospace;
+        background:
+          radial-gradient(circle at top right, rgba(255, 122, 0, 0.1), transparent 42%),
+          radial-gradient(circle at top left, rgba(0, 224, 198, 0.05), transparent 36%),
+          var(--bg-core);
+      }
+
+      main {
+        width: min(100%, 860px);
+        margin: 0 auto;
+        border: 1px solid var(--line);
+        background: var(--bg-panel);
+        padding: clamp(1rem, 2.4vw, 1.4rem);
+      }
+
+      h1,
+      h2 {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: clamp(1.35rem, 3vw, 2rem);
+      }
+
+      h2 {
+        margin-top: 1rem;
+        margin-bottom: 0.45rem;
+        font-size: 1rem;
+      }
+
+      p {
+        margin: 0.45rem 0 0.75rem;
+        color: var(--text-muted);
+        line-height: 1.5;
+      }
+
+      ul,
+      ol {
+        margin: 0.4rem 0 0.9rem;
+        padding-left: 1.1rem;
+        color: var(--text-muted);
+      }
+
+      li {
+        margin: 0.3rem 0;
+      }
+
+      code {
+        color: var(--phosphor-accent);
+      }
+
+      .top-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+        align-items: center;
+        margin-bottom: 0.8rem;
+      }
+
+      .home-link {
+        border: 1px solid var(--phosphor-accent);
+        color: #001916;
+        background: var(--phosphor-accent);
+        text-decoration: none;
+        padding: 0.55rem 0.75rem;
+        font-size: 0.82rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      .card {
+        border: 1px solid var(--line-soft);
+        padding: 0.75rem;
+        margin-top: 0.7rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="top-row">
+        <h1>WALLET SETUP GUIDE</h1>
+        <a href="/" class="home-link">Return to App</a>
+      </div>
+
+      <p>
+        This guide helps you set up any EVM wallet (MetaMask, Rainbow, Coinbase Wallet, Rabby), switch to Sepolia,
+        and connect to Turkey Coin Hub.
+      </p>
+
+      <div class="card">
+        <h2>1. Install a Wallet</h2>
+        <ol>
+          <li>Install MetaMask (or your preferred EVM wallet) on mobile or desktop.</li>
+          <li>Create a new wallet or import an existing one.</li>
+          <li>Back up your recovery phrase securely offline.</li>
+        </ol>
+
+        <h2>2. Switch to Sepolia Testnet</h2>
+        <ol>
+          <li>Open your wallet network list.</li>
+          <li>Select <code>Sepolia</code>. If hidden, enable test networks in wallet settings.</li>
+          <li>Confirm chain ID is <code>11155111</code>.</li>
+        </ol>
+
+        <h2>3. Get Test ETH</h2>
+        <ol>
+          <li>Copy your wallet address.</li>
+          <li>Use a Sepolia faucet and request test ETH.</li>
+          <li>Wait for the transaction to arrive in your wallet.</li>
+        </ol>
+
+        <h2>4. Connect to Turkey Coin Hub</h2>
+        <ol>
+          <li>Return to this app and tap <code>RETURNING USER? CONNECT WALLET</code> or <code>GET STARTED</code>.</li>
+          <li>Approve the wallet connection request.</li>
+          <li>When prompted to return to the app, switch back and wait a moment for auto-detection.</li>
+        </ol>
+
+        <h2>5. Troubleshooting</h2>
+        <ul>
+          <li>If connection does not appear, close/reopen the wallet picker and reconnect.</li>
+          <li>Ensure the wallet is on <code>Sepolia</code>, not Mainnet.</li>
+          <li>If needed, refresh once and reconnect.</li>
+        </ul>
+      </div>
+    </main>
+  </body>
+</html>
