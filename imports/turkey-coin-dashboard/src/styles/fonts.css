@@ -1,0 +1,6 @@
+/* Terminal-style monospace font */
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Courier+Prime&display=swap');
+
+body {
+  font-family: 'Share Tech Mono', 'Courier Prime', 'Courier New', monospace;
+}

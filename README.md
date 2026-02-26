@@ -1,98 +1,74 @@
 # Turkey Coin Hub
 
-Internal Astro + React MVP for:
-- wallet onboarding (`wallet_address -> handle`)
-- public leaderboard (read-only)
-- admin reward queueing (mint requests)
+Turkey Coin Hub now runs as a single React SPA mounted inside Astro, while Astro still hosts all same-origin APIs and Cloudflare runtime integrations.
 
-## Overview
+## Architecture
 
-- Frontend: Astro pages + React islands
-- Web3: RainbowKit + wagmi + React Query
-- Runtime/Deploy: Cloudflare Pages Functions (`@astrojs/cloudflare`)
-- Database: Cloudflare D1 (`DB` binding)
-- Chain default: Sepolia (centralized in `src/lib/chain.ts`)
+- Host/runtime: Astro (`@astrojs/cloudflare`) on Cloudflare Pages Functions
+- UI: Single React SPA mounted with `client:only="react"`
+- Routing model:
+  - Astro serves the shell for `/` and catch-all non-API routes via `src/pages/[...spa].astro`
+  - React Router handles SPA client routes (`/`, `/onboard`, `/admin`, `/status`)
+  - Astro still handles `/api/*` routes directly
+- APIs and auth: unchanged in `src/pages/api/*`
+  - Same-origin API calls only (`/api/...`)
+  - Cloudflare Access JWT verification + allowlists preserved
+  - `x-auth-warning` surfaced in admin UI
+- Data: Cloudflare D1 binding `DB` with existing migrations unchanged
+- Web3: existing RainbowKit + wagmi provider/connect flow reused
 
-## Current State
+## Current Routes
 
-Implemented routes:
-- `/` home links
-- `/leaderboard` public leaderboard
-- `/onboard` self-service onboarding
-- `/admin` admin reward panel UI
-- `/status` runtime health
+SPA routes:
+- `/` Dashboard
+- `/onboard` Onboarding
+- `/admin` Admin
+- `/status` Status
 
-Implemented API routes:
+API routes (unchanged):
 - `GET /api/leaderboard`
-  - joins `users` + `balance_cache`
-  - sorts by balance desc, then handle asc
-  - returns `[]` with `x-no-db: true` if DB missing
 - `POST /api/onboard`
-  - validates wallet + handle
-  - enforces unique handle ownership
-  - inserts or updates user
-- `GET /api/users` (admin)
-  - requires access headers + allowlist checks
-- `POST /api/admin/mint` (admin)
-  - validates payload
-  - writes `mint_events` with status `queued`
-  - returns `{ ok, eventId, txHash: null }`
+- `GET /api/users`
+- `POST /api/admin/mint`
+- `GET /api/admin/mint-events`
+- `PATCH /api/admin/mint-events`
 - `GET /api/status`
-  - reports DB binding/ping, chain meta, allowlist config state
 
-Current auth model:
-- Cloudflare Access JWT verification using JWKS (`CF-Access-Jwt-Assertion` / Bearer token)
-- Validates issuer + audience (`CF_ACCESS_TEAM_DOMAIN`, `CF_ACCESS_AUD`)
-- Additional allowlist checks:
-  - `ADMIN_SUBJECT_ALLOWLIST`
-  - `ADMIN_EMAIL_ALLOWLIST`
-- Optional local-only bypass:
-  - `ADMIN_AUTH_BYPASS_LOCAL=true`
+## Important Paths
 
-## Data Model
+- SPA entry: `src/spa/App.tsx`
+- SPA shell/components/views: `src/spa/*`
+- SPA mount pages: `src/pages/index.astro`, `src/pages/[...spa].astro`
+- API routes: `src/pages/api/*`
+- Auth logic: `src/lib/auth.ts`
+- D1 access: `src/lib/db.ts`
+- Imported UI snapshot: `imports/turkey-coin-dashboard/`
 
-Canonical schema source is `migrations/`.
+## Local Development
 
-`schema.sql` is a snapshot/reference and should be treated as generated documentation, not the source of truth.
-
-Core tables:
-- `users`
-- `balance_cache`
-- `mint_events`
-
-## Local/Prod Setup
-
-Use the dedicated runbook:
-- `README_DEV.md`
-
-Key requirements:
-- D1 binding name must be `DB`
-- schema/migrations must be applied to the bound production DB
-- env vars must be set in Cloudflare Pages (Preview + Production)
+1. Install deps:
+   - `npm install`
+2. Run Astro dev:
+   - `npm run dev`
+3. Build:
+   - `npm run build`
+4. Optional Cloudflare Pages local runtime from build output:
+   - `npm run dev:cf`
 
 ## Environment Variables
 
 Required:
 - `PUBLIC_WALLETCONNECT_PROJECT_ID`
 
-Admin controls:
-- `ADMIN_SUBJECT_ALLOWLIST` (comma-separated)
-- `ADMIN_EMAIL_ALLOWLIST` (comma-separated)
-- `CF_ACCESS_TEAM_DOMAIN` (e.g. `yourteam.cloudflareaccess.com`)
-- `CF_ACCESS_AUD` (Cloudflare Access app audience tag)
-- `ADMIN_AUTH_BYPASS_LOCAL` (`true`/`false`, default `false`)
+Admin/auth:
+- `ADMIN_SUBJECT_ALLOWLIST`
+- `ADMIN_EMAIL_ALLOWLIST`
+- `CF_ACCESS_TEAM_DOMAIN`
+- `CF_ACCESS_AUD`
+- `ADMIN_AUTH_BYPASS_LOCAL`
 
-## Commands
+## Data + Migrations
 
-| Command | Description |
-|---|---|
-| `npm install` | Install dependencies |
-| `npm run dev` | Astro local dev server |
-| `npm run build` | Build for Cloudflare Pages Functions |
-| `npm run dev:cf` | Run Pages local runtime from `./dist` |
-| `npm run deploy` | Deploy `./dist` with wrangler |
-
-## Known Gaps / TODO
-
-- Implement real mint execution + tx hash/status updates
-- Add balance sync job (on-chain -> `balance_cache`)
+- Migrations remain source of truth in `migrations/`
+- Schema snapshot/reference remains in `schema.sql`
+- D1 binding name must remain `DB`

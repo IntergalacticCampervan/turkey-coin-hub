@@ -1,0 +1,64 @@
+@import './fonts.css';
+@import './tailwind.css';
+@import './theme.css';
+
+/* Custom animations for terminal effects */
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.animate-fadeOut {
+  animation: fadeOut 1s ease-out forwards;
+}
+
+/* Flickering effect for power-on */
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  41%, 45% { opacity: 0.8; }
+  42%, 44% { opacity: 0.3; }
+  43% { opacity: 0.5; }
+}
+
+.animate-flicker {
+  animation: flicker 0.15s ease-in-out;
+}
+
+/* Scanline animation */
+@keyframes scanline {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100vh);
+  }
+}
+
+/* Selection highlight override for terminal aesthetic */
+::selection {
+  background-color: var(--phosphor-accent);
+  color: var(--bg-core);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-core);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--phosphor-primary);
+  border: 1px solid var(--bg-core);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--phosphor-accent);
+}
