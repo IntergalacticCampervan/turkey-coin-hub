@@ -353,7 +353,7 @@ export function AdminView() {
 
         {loadingEvents ? <p className="muted-text">Loading issuance log...</p> : null}
 
-        <div className="table-wrap">
+        <div className="table-wrap desktop-table">
           <table>
             <thead>
               <tr>
@@ -418,6 +418,72 @@ export function AdminView() {
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="event-cards">
+          {events.length === 0 ? (
+            <p className="muted-text">No mint events yet.</p>
+          ) : (
+            events.map((event) => (
+              <div key={`mobile-${event.id}`} className="event-card">
+                <div className="event-card-row">
+                  <span className="event-card-label">ID</span>
+                  <span className="event-card-value">{event.id.slice(0, 8)}</span>
+                </div>
+                <div className="event-card-row">
+                  <span className="event-card-label">Wallet</span>
+                  <span className="event-card-value">{event.toWallet}</span>
+                </div>
+                <div className="event-card-row">
+                  <span className="event-card-label">Amount</span>
+                  <span className="event-card-value">{event.amountRaw}</span>
+                </div>
+                <div className="event-card-row">
+                  <span className="event-card-label">Status</span>
+                  <span className="event-card-value">{event.status}</span>
+                </div>
+                <div className="event-card-row">
+                  <span className="event-card-label">Time</span>
+                  <span className="event-card-value">{new Date(event.createdAt).toLocaleString()}</span>
+                </div>
+                <div className="list-actions compact">
+                  <button
+                    type="button"
+                    disabled={
+                      updatingEventId === event.id ||
+                      !manualOverrideEnabled ||
+                      event.status !== 'queued' ||
+                      !manualTxHash.trim()
+                    }
+                    onClick={() => updateStatus(event.id, 'submitted', true)}
+                  >
+                    Force Submitted
+                  </button>
+                  <button
+                    type="button"
+                    disabled={updatingEventId === event.id || !manualOverrideEnabled || event.status !== 'submitted'}
+                    onClick={() => updateStatus(event.id, 'confirmed', true)}
+                  >
+                    Force Confirmed
+                  </button>
+                  <button
+                    type="button"
+                    disabled={updatingEventId === event.id || !(event.status === 'queued' || event.status === 'submitted')}
+                    onClick={() => updateStatus(event.id, 'failed', false)}
+                  >
+                    Mark Failed
+                  </button>
+                  <button
+                    type="button"
+                    disabled={updatingEventId === event.id || !manualOverrideEnabled}
+                    onClick={() => updateStatus(event.id, 'queued', true)}
+                  >
+                    Requeue
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </DataPanel>
     </div>

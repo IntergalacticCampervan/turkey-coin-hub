@@ -5,7 +5,30 @@ import { getLeaderboardWithHeaders } from '../lib/api';
 import type { LeaderboardEntry } from '../lib/types';
 import { DataPanel, StatusBadge, TerminalText } from '../components/TerminalPrimitives';
 
-function shortWallet(wallet: string) {
+function normalizeRow(raw: unknown): LeaderboardEntry | null {
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
+
+  const value = raw as Record<string, unknown>;
+  const handle = String(value.handle ?? '').trim();
+  const walletAddress = String(value.walletAddress ?? '').trim();
+  const balance = String(value.balance ?? '0').trim();
+  const updatedAt = String(value.updatedAt ?? '').trim();
+
+  if (!handle || !walletAddress) {
+    return null;
+  }
+
+  return { handle, walletAddress, balance, updatedAt };
+}
+
+function formatDateSafe(input: string): string {
+  const date = new Date(input);
+  return Number.isNaN(date.getTime()) ? '-' : date.toLocaleString();
+}
+
+function shortWallet(wallet: string): string {
   return wallet.length > 12 ? `${wallet.slice(0, 6)}...${wallet.slice(-4)}` : wallet;
 }
 
@@ -25,7 +48,11 @@ export function DashboardView() {
       return;
     }
 
-    setRows(result.rows);
+    const normalizedRows = result.rows
+      .map((row) => normalizeRow(row))
+      .filter((row): row is LeaderboardEntry => row !== null);
+
+    setRows(normalizedRows);
     setError(null);
     setLoading(false);
   }
@@ -37,7 +64,11 @@ export function DashboardView() {
   }, []);
 
   const totalSupply = useMemo(
-    () => rows.reduce((sum, row) => sum + Number.parseInt(row.balance || '0', 10), 0),
+    () =>
+      rows.reduce((sum, row) => {
+        const parsed = Number.parseInt(row.balance || '0', 10);
+        return sum + (Number.isNaN(parsed) ? 0 : parsed);
+      }, 0),
     [rows],
   );
 
@@ -80,7 +111,7 @@ export function DashboardView() {
         {noDb ? <p className="warning-text">D1 is not configured in this runtime.</p> : null}
         {error ? <p className="error-text">{error}</p> : null}
 
-        <div className="table-wrap">
+        <div className="table-wrap desktop-table">
           <table>
             <thead>
               <tr>
@@ -103,12 +134,43 @@ export function DashboardView() {
                     <td>{row.handle}</td>
                     <td>{shortWallet(row.walletAddress)}</td>
                     <td>{row.balance}</td>
-                    <td>{new Date(row.updatedAt).toLocaleString()}</td>
+                    <td>{formatDateSafe(row.updatedAt)}</td>
                   </tr>
                 ))
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="event-cards">
+          {rows.length === 0 ? (
+            <p className="muted-text">No leaderboard rows yet.</p>
+          ) : (
+            rows.map((row, index) => (
+              <div key={`mobile-${row.walletAddress}`} className="event-card">
+                <div className="event-card-row">
+                  <span className="event-card-label">Rank</span>
+                  <span className="event-card-value">#{index + 1}</span>
+                </div>
+                <div className="event-card-row">
+                  <span className="event-card-label">Handle</span>
+                  <span className="event-card-value">{row.handle}</span>
+                </div>
+                <div className="event-card-row">
+                  <span className="event-card-label">Wallet</span>
+                  <span className="event-card-value">{row.walletAddress}</span>
+                </div>
+                <div className="event-card-row">
+                  <span className="event-card-label">Balance</span>
+                  <span className="event-card-value">{row.balance}</span>
+                </div>
+                <div className="event-card-row">
+                  <span className="event-card-label">Updated</span>
+                  <span className="event-card-value">{formatDateSafe(row.updatedAt)}</span>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </DataPanel>
     </div>

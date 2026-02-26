@@ -39,7 +39,7 @@ export function BootSequence({ onComplete }: { onComplete: () => void }) {
   if (phase === 'reveal') {
     return (
       <div className="boot-screen fade-out">
-        <img src={logo.src} alt="Turkey Coin" className="boot-logo" />
+        <img src={logo} alt="Turkey Coin" className="boot-logo" />
         <TerminalText glow className="boot-title">
           LAUNCHING TURKEY COIN
         </TerminalText>
