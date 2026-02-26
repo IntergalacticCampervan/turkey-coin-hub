@@ -1,4 +1,4 @@
-import { Menu, Shield, Trophy, UserPlus, Activity, X } from 'lucide-react';
+import { Shield, Trophy, UserPlus, Activity } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 
@@ -39,7 +39,7 @@ export function AppShell() {
             aria-controls="site-nav"
             aria-label="Toggle navigation"
           >
-            {mobileOpen ? <X size={16} /> : <Menu size={16} />}
+            <img src="/Turkeycoin.svg" alt="" aria-hidden="true" className="menu-box-icon" />
           </button>
           <TerminalText glow className="sys-title">
             TURKEY_COIN_SYS_v2.4.1
