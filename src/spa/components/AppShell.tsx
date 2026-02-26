@@ -41,10 +41,10 @@ export function AppShell() {
           >
             <img src="/Turkeycoin.svg" alt="" aria-hidden="true" className="menu-box-icon" />
           </button>
-          <TerminalText glow className="sys-title">
+          <TerminalText glow className="sys-title sys-name">
             TURKEY_COIN_SYS_v2.4.1
           </TerminalText>
-          <TerminalText className="sys-title">
+          <TerminalText className="sys-title sys-time">
             {now.toLocaleString('en-US', {
               year: 'numeric',
               month: '2-digit',
