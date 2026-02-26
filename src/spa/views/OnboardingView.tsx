@@ -4,6 +4,7 @@ import type { FormEvent } from 'react';
 import { useAccount } from 'wagmi';
 
 import ConnectWalletButton from '../../components/web3/ConnectWalletButton';
+import DecryptedText from '../../components/DecryptedText';
 import { postOnboard } from '../lib/api';
 import { DataPanel, StatusBadge, TerminalText } from '../components/TerminalPrimitives';
 
@@ -44,7 +45,9 @@ export function OnboardingView() {
   return (
     <div className="view-grid narrow">
       <div className="onboard-hero">
-        <h1 className="view-title">TURKEY COIN</h1>
+        <h1 className="view-title">
+          <DecryptedText text="TURKEY COIN" animateOn="view" sequential speed={40} />
+        </h1>
         <TerminalText as="p" className="muted-text">
           WALLET ONBOARDING SEQUENCE
         </TerminalText>

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useAccount } from 'wagmi';
 
+import DecryptedText from '../../components/DecryptedText';
 import { getMintEvents, getUsers, patchMintEvent, postMint } from '../lib/api';
 import type { MintEvent, MintEventStatus, UserEntry } from '../lib/types';
 import { DataPanel, StatusBadge, TerminalText } from '../components/TerminalPrimitives';
@@ -197,7 +198,8 @@ export function AdminView() {
         <div className="view-header">
           <div>
             <h1 className="view-title admin-title">
-              <Shield size={26} /> ADMIN CONTROL PANEL
+              <Shield size={26} />
+              <DecryptedText text="ADMIN CONTROL PANEL" animateOn="view" sequential speed={40} />
             </h1>
             <TerminalText as="p" className="muted-text">PRIVILEGED ACCESS ONLY</TerminalText>
           </div>
@@ -224,7 +226,8 @@ export function AdminView() {
       <div className="view-header">
         <div>
           <h1 className="view-title admin-title">
-            <Shield size={26} /> ADMIN CONTROL PANEL
+            <Shield size={26} />
+            <DecryptedText text="ADMIN CONTROL PANEL" animateOn="view" sequential speed={40} />
           </h1>
           <TerminalText as="p" className="muted-text">PRIVILEGED ACCESS ONLY</TerminalText>
         </div>

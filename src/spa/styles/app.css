@@ -5,15 +5,15 @@
   --phosphor-primary: #ff7a00;
   --phosphor-accent: #00e0c6;
   --phosphor-warning: #ff3333;
-  --bg-core: #0a0c0f;
-  --bg-panel: #111318;
-  --bg-overlay: rgba(17, 19, 24, 0.92);
-  --line: rgba(255, 122, 0, 0.35);
-  --line-soft: rgba(255, 122, 0, 0.2);
-  --text-soft: rgba(255, 122, 0, 0.75);
-  --text-muted: rgba(255, 122, 0, 0.52);
-  --glow-soft: 0 0 8px rgba(255, 122, 0, 0.45);
-  --glow-accent: 0 0 12px rgba(0, 224, 198, 0.55);
+  --bg-core: #11141a;
+  --bg-panel: #171b23;
+  --bg-overlay: rgba(23, 27, 35, 0.88);
+  --line: rgba(255, 145, 38, 0.48);
+  --line-soft: rgba(255, 145, 38, 0.3);
+  --text-soft: rgba(255, 158, 56, 0.9);
+  --text-muted: rgba(255, 158, 56, 0.66);
+  --glow-soft: 0 0 10px rgba(255, 145, 38, 0.55);
+  --glow-accent: 0 0 14px rgba(0, 224, 198, 0.62);
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -33,7 +33,10 @@ body {
 body {
   min-height: 100dvh;
   color: var(--phosphor-primary);
-  background: radial-gradient(circle at top right, #1c1410, transparent 35%), var(--bg-core);
+  background:
+    radial-gradient(circle at top right, rgba(255, 122, 0, 0.12), transparent 40%),
+    radial-gradient(circle at top left, rgba(0, 224, 198, 0.06), transparent 38%),
+    var(--bg-core);
   font-family: 'Share Tech Mono', 'Courier Prime', 'Courier New', monospace;
   overflow-x: hidden;
 }
@@ -593,7 +596,7 @@ th {
 }
 
 .overlay-vignette {
-  background: radial-gradient(circle at center, transparent 0%, rgba(10, 12, 15, 0.35) 100%);
+  background: radial-gradient(circle at center, transparent 0%, rgba(10, 12, 15, 0.2) 100%);
 }
 
 .boot-screen {
@@ -613,15 +616,32 @@ th {
   gap: 0.25rem;
 }
 
+.boot-logo-wrap {
+  width: min(100%, 520px);
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  text-align: center;
+  gap: 0.5rem;
+}
+
 .boot-logo {
   width: clamp(120px, 22vw, 220px);
   height: auto;
   filter: drop-shadow(0 0 22px rgba(255, 122, 0, 0.5));
+  animation: coin-spin-y 3.2s linear infinite;
+  transform-origin: center center;
+  transform-style: preserve-3d;
+  backface-visibility: visible;
 }
 
 .boot-title {
-  margin-top: 1rem;
+  margin-top: 0.8rem;
   font-size: clamp(1rem, 2.8vw, 1.6rem);
+}
+
+.boot-subtitle {
+  margin-top: 0.2rem;
 }
 
 .fade-out {
@@ -666,6 +686,15 @@ th {
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes coin-spin-y {
+  from {
+    transform: perspective(800px) rotateY(0deg);
+  }
+  to {
+    transform: perspective(800px) rotateY(360deg);
   }
 }
 

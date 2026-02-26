@@ -1,6 +1,7 @@
 import { RefreshCw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
+import DecryptedText from '../../components/DecryptedText';
 import { getLeaderboardWithHeaders } from '../lib/api';
 import type { LeaderboardEntry } from '../lib/types';
 import { DataPanel, StatusBadge, TerminalText } from '../components/TerminalPrimitives';
@@ -76,7 +77,9 @@ export function DashboardView() {
     <div className="view-grid">
       <div className="view-header">
         <div>
-          <h1 className="view-title">TURKEY COIN DASHBOARD</h1>
+          <h1 className="view-title">
+            <DecryptedText text="TURKEY COIN DASHBOARD" animateOn="view" sequential speed={40} />
+          </h1>
           <TerminalText as="p" className="muted-text">
             LIVE LEADERBOARD + SYSTEM FEED
           </TerminalText>
