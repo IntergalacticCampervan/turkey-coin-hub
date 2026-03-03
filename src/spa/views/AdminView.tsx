@@ -1,5 +1,5 @@
 import { AlertTriangle, Send, Shield } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useAccount } from 'wagmi';
 
@@ -52,6 +52,7 @@ export function AdminView() {
   const [notice, setNotice] = useState<Notice>(null);
   const [issuing, setIssuing] = useState(false);
   const [updatingEventId, setUpdatingEventId] = useState<string | null>(null);
+  const mintSubmitLockRef = useRef(false);
 
   const normalizedFilterWallet = useMemo(() => filterWallet.trim().toLowerCase(), [filterWallet]);
 
@@ -128,26 +129,36 @@ export function AdminView() {
 
   async function handleIssueTokens(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (mintSubmitLockRef.current) {
+      return;
+    }
+
+    mintSubmitLockRef.current = true;
     setNotice(null);
 
     if (!isConnected) {
       setNotice({ tone: 'error', text: 'Connect wallet to perform admin actions.' });
+      mintSubmitLockRef.current = false;
       return;
     }
 
     const parsedAmount = Number(amount);
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
       setNotice({ tone: 'error', text: 'Amount (Turkey Coins) must be greater than 0.' });
+      mintSubmitLockRef.current = false;
       return;
     }
 
     if (!Number.isInteger(parsedAmount) || parsedAmount > 1000) {
       setNotice({ tone: 'error', text: 'Amount must be an integer between 1 and 1000.' });
+      mintSubmitLockRef.current = false;
       return;
     }
 
     if (!selectedWallet) {
       setNotice({ tone: 'error', text: 'Select a target wallet first.' });
+      mintSubmitLockRef.current = false;
       return;
     }
 
@@ -183,11 +194,13 @@ export function AdminView() {
     if (!result.ok || !result.data?.ok) {
       setNotice({ tone: 'error', text: result.error || result.data?.error || 'Mint request failed.' });
       setIssuing(false);
+      mintSubmitLockRef.current = false;
       return;
     }
 
     setNotice({ tone: 'success', text: `Issued request queued (${result.data.eventId || 'unknown event'}).` });
     setIssuing(false);
+    mintSubmitLockRef.current = false;
     setAmount('');
     await loadEvents();
   }
