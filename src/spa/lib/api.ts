@@ -16,11 +16,28 @@ type FetchResult<T> = {
   warning: ApiWarning;
   data: T | null;
   error: string | null;
+  requiresAccessLogin?: boolean;
 };
 
 async function requestJson<T>(input: string, init?: RequestInit): Promise<FetchResult<T>> {
   try {
-    const response = await fetch(input, init);
+    const response = await fetch(input, {
+      credentials: 'same-origin',
+      redirect: 'manual',
+      ...init,
+    });
+
+    if (response.type === 'opaqueredirect' || (response.status >= 300 && response.status < 400)) {
+      return {
+        status: 401,
+        ok: false,
+        warning: null,
+        data: null,
+        error: 'Missing Cloudflare Access authentication headers',
+        requiresAccessLogin: true,
+      };
+    }
+
     const warning = response.headers.get('x-auth-warning');
 
     let parsed: unknown = null;
@@ -38,6 +55,7 @@ async function requestJson<T>(input: string, init?: RequestInit): Promise<FetchR
         warning,
         data: null,
         error: body?.error || `Request failed with HTTP ${response.status}`,
+        requiresAccessLogin: false,
       };
     }
 
@@ -47,6 +65,7 @@ async function requestJson<T>(input: string, init?: RequestInit): Promise<FetchR
       warning,
       data: parsed as T,
       error: null,
+      requiresAccessLogin: false,
     };
   } catch {
     return {
@@ -55,6 +74,7 @@ async function requestJson<T>(input: string, init?: RequestInit): Promise<FetchR
       warning: null,
       data: null,
       error: 'Network request failed',
+      requiresAccessLogin: false,
     };
   }
 }

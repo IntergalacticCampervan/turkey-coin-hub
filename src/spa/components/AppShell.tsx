@@ -8,7 +8,7 @@ import { StatusBadge, TerminalText } from './TerminalPrimitives';
 
 const NAV_ITEMS = [
   { to: '/', label: 'DASHBOARD', icon: Trophy },
-  { to: '/admin', label: 'ADMIN', icon: Shield },
+  { to: '/auth/access-login?return_to=/admin', label: 'ADMIN', icon: Shield, external: true },
   { to: '/status', label: 'STATUS', icon: Activity },
 ];
 
@@ -69,12 +69,19 @@ export function AppShell() {
           <div className="nav-items">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
-              const active = location.pathname === item.to;
+              const active = item.label === 'ADMIN' ? location.pathname === '/admin' : location.pathname === item.to;
               return (
-                <Link key={item.to} to={item.to} className={`nav-link ${active ? 'active' : ''}`}>
-                  <Icon size={16} />
-                  <span>{item.label}</span>
-                </Link>
+                item.external ? (
+                  <a key={item.to} href={item.to} className={`nav-link ${active ? 'active' : ''}`}>
+                    <Icon size={16} />
+                    <span>{item.label}</span>
+                  </a>
+                ) : (
+                  <Link key={item.to} to={item.to} className={`nav-link ${active ? 'active' : ''}`}>
+                    <Icon size={16} />
+                    <span>{item.label}</span>
+                  </Link>
+                )
               );
             })}
           </div>

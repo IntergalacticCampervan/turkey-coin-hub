@@ -10,9 +10,10 @@ import { DataPanel, StatusBadge, TerminalText } from '../components/TerminalPrim
 
 type Notice = { tone: 'success' | 'error'; text: string } | null;
 const MISSING_HEADERS_ERROR = 'Missing Cloudflare Access authentication headers';
+const ACCESS_LOGIN_PATH = '/auth/access-login?return_to=/admin';
 
-function getAdminAuthError(status: number, error: string | null): string | null {
-  if (status !== 401 && status !== 403) {
+function getAdminAuthError(status: number, error: string | null, requiresAccessLogin?: boolean): string | null {
+  if (!requiresAccessLogin && status !== 401 && status !== 403) {
     return null;
   }
 
@@ -46,6 +47,7 @@ export function AdminView() {
   const [notice, setNotice] = useState<Notice>(null);
   const [issuing, setIssuing] = useState(false);
   const [updatingEventId, setUpdatingEventId] = useState<string | null>(null);
+  const [redirectingToAccess, setRedirectingToAccess] = useState(false);
 
   const normalizedFilterWallet = useMemo(() => filterWallet.trim().toLowerCase(), [filterWallet]);
 
@@ -58,7 +60,7 @@ export function AdminView() {
     }
 
     if (!result.ok) {
-      const authMessage = getAdminAuthError(result.status, result.error);
+      const authMessage = getAdminAuthError(result.status, result.error, result.requiresAccessLogin);
       if (authMessage) {
         setAuthError(authMessage);
         setNotice(null);
@@ -88,7 +90,7 @@ export function AdminView() {
     }
 
     if (!result.ok) {
-      const authMessage = getAdminAuthError(result.status, result.error);
+      const authMessage = getAdminAuthError(result.status, result.error, result.requiresAccessLogin);
       if (authMessage) {
         setAuthError(authMessage);
         setNotice(null);
@@ -110,10 +112,25 @@ export function AdminView() {
   }, []);
 
   useEffect(() => {
+    if (authError) {
+      setLoadingEvents(false);
+      return;
+    }
+
     loadEvents();
     const timer = window.setInterval(loadEvents, 15_000);
     return () => window.clearInterval(timer);
-  }, [filterStatus, normalizedFilterWallet]);
+  }, [filterStatus, normalizedFilterWallet, authError]);
+
+  useEffect(() => {
+    if (authError !== MISSING_HEADERS_ERROR) {
+      setRedirectingToAccess(false);
+      return;
+    }
+
+    setRedirectingToAccess(true);
+    window.location.replace(ACCESS_LOGIN_PATH);
+  }, [authError]);
 
   async function handleIssueTokens(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -193,6 +210,19 @@ export function AdminView() {
   }
 
   if (authError) {
+    if (redirectingToAccess && authError === MISSING_HEADERS_ERROR) {
+      return (
+        <div className="view-grid narrow">
+          <DataPanel status="syncing">
+            <div className="onboard-center">
+              <TerminalText className="panel-heading glow">AUTHORIZING ADMIN ACCESS</TerminalText>
+              <TerminalText className="muted-text">Redirecting to Cloudflare Access...</TerminalText>
+            </div>
+          </DataPanel>
+        </div>
+      );
+    }
+
     return (
       <div className="view-grid narrow">
         <div className="view-header">
@@ -214,6 +244,13 @@ export function AdminView() {
               <TerminalText as="p" className="muted-text">
                 {authError}
               </TerminalText>
+              {authError === MISSING_HEADERS_ERROR ? (
+                <div className="admin-auth-actions">
+                  <a href={ACCESS_LOGIN_PATH} className="primary-cta">
+                    SIGN IN WITH ACCESS
+                  </a>
+                </div>
+              ) : null}
             </div>
           </div>
         </DataPanel>
