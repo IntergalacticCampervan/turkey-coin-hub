@@ -29,6 +29,24 @@ function randomId() {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+async function findMintEventByIdempotencyKey(db: NonNullable<ReturnType<typeof getDB>>, idempotencyKey: string) {
+  return db
+    .prepare(
+      `
+        SELECT
+          id,
+          status,
+          COALESCE(tx_hash, mint_tx_hash) AS txHash,
+          failure_reason AS failureReason
+        FROM mint_events
+        WHERE idempotency_key = ?
+        LIMIT 1
+      `,
+    )
+    .bind(idempotencyKey)
+    .first<{ id: string; status: string; txHash: string | null; failureReason: string | null }>();
+}
+
 export const POST: APIRoute = async (context) => {
   const auth = await requireAccessAuth(context.request, getAdminAuthEnv(context.locals));
   if (!auth.ok) {
@@ -162,10 +180,34 @@ export const POST: APIRoute = async (context) => {
 
     return json({ ok: true, eventId, txHash: mintedEvent?.txHash ?? null }, 200, warningHeaders);
   } catch {
-    return json(
-      { ok: false, error: 'Failed to queue mint event (possible duplicate idempotencyKey)' },
-      409,
-      warningHeaders,
-    );
+    const existingEvent = await findMintEventByIdempotencyKey(db, idempotencyKey);
+
+    if (existingEvent) {
+      if (existingEvent.status === 'failed') {
+        return json(
+          {
+            ok: false,
+            error: existingEvent.failureReason || 'Mint submission failed',
+            eventId: existingEvent.id,
+            txHash: existingEvent.txHash,
+          },
+          409,
+          warningHeaders,
+        );
+      }
+
+      return json(
+        {
+          ok: true,
+          eventId: existingEvent.id,
+          txHash: existingEvent.txHash,
+          warning: 'Duplicate mint request reused existing event.',
+        },
+        200,
+        warningHeaders,
+      );
+    }
+
+    return json({ ok: false, error: 'Failed to queue mint event' }, 409, warningHeaders);
   }
 };
