@@ -21,6 +21,10 @@ type GateState = 'checking' | 'needsOnboarding' | 'authenticating' | 'ready';
 type GateReason = 'wallet_disconnected' | 'wallet_not_onboarded' | 'verification_failed' | null;
 const BOOT_SEEN_SESSION_KEY = 'turkeycoin:boot-seen';
 
+function shouldBypassWalletGate(pathname: string): boolean {
+  return pathname === '/admin' || pathname === '/status' || pathname === '/api-specs';
+}
+
 function hasWalletOnboarded(rows: unknown[], walletAddress: string): boolean {
   const normalizedWallet = walletAddress.trim().toLowerCase();
   return rows.some((row) => {
@@ -41,6 +45,8 @@ function PlatformGate({ onOnboardingComplete }: { onOnboardingComplete: () => vo
   const [gateReason, setGateReason] = useState<GateReason>(null);
   const [gateError, setGateError] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
+  const requestedPath = typeof window === 'undefined' ? '/' : window.location.pathname;
+  const bypassWalletGate = shouldBypassWalletGate(requestedPath);
 
   useEffect(() => {
     let active = true;
@@ -95,6 +101,15 @@ function PlatformGate({ onOnboardingComplete }: { onOnboardingComplete: () => vo
     let cancelled = false;
     let authTimer = 0;
 
+    if (bypassWalletGate) {
+      setGateState('ready');
+      setGateReason(null);
+      setGateError(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+
     if (!isConnected || !address) {
       setGateState('needsOnboarding');
       setGateReason('wallet_disconnected');
@@ -139,7 +154,7 @@ function PlatformGate({ onOnboardingComplete }: { onOnboardingComplete: () => vo
       cancelled = true;
       window.clearTimeout(authTimer);
     };
-  }, [isConnected, address, refreshToken]);
+  }, [address, bypassWalletGate, isConnected, refreshToken]);
 
   if (gateState === 'checking' || gateState === 'authenticating') {
     return (
