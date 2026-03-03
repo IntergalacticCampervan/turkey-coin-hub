@@ -2,6 +2,8 @@ import type { APIRoute } from 'astro';
 
 import { getAdminAuthEnv, requireAccessAuth } from '../../../lib/auth';
 import { getDB } from '../../../lib/db';
+import { processMintLifecycle } from '../../../lib/mintProcessor';
+import { getOnchainEnv } from '../../../lib/onchain';
 
 export const prerender = false;
 
@@ -69,6 +71,7 @@ export const GET: APIRoute = async (context) => {
   if (!db) {
     return json([], 200, warningHeaders);
   }
+  const onchainEnv = getOnchainEnv(context.locals);
 
   const url = new URL(context.request.url);
   const limit = sanitizeLimit(url.searchParams.get('limit'));
@@ -99,6 +102,11 @@ export const GET: APIRoute = async (context) => {
   const whereClause = filters.length > 0 ? `WHERE ${filters.join(' AND ')}` : '';
 
   try {
+    await processMintLifecycle(db, onchainEnv, {
+      queuedLimit: 5,
+      submittedLimit: 25,
+    });
+
     const query = `
       SELECT
         id,
@@ -201,11 +209,18 @@ export const PATCH: APIRoute = async (context) => {
       .prepare(
         `
           UPDATE mint_events
-          SET status = 'submitted', tx_hash = ?, mint_tx_hash = ?, submitted_at = ?, failed_at = NULL, failure_reason = NULL
+          SET
+            status = 'submitted',
+            tx_hash = ?,
+            mint_tx_hash = ?,
+            submitted_at = ?,
+            updated_at = ?,
+            failed_at = NULL,
+            failure_reason = NULL
           WHERE id = ?
         `,
       )
-      .bind(txHash, txHash, now, eventId)
+      .bind(txHash, txHash, now, now, eventId)
       .run();
 
     return json({ ok: true }, 200, warningHeaders);
@@ -224,11 +239,11 @@ export const PATCH: APIRoute = async (context) => {
       .prepare(
         `
           UPDATE mint_events
-          SET status = 'confirmed', confirmed_at = ?, failure_reason = NULL, failed_at = NULL
+          SET status = 'confirmed', confirmed_at = ?, updated_at = ?, failure_reason = NULL, failed_at = NULL
           WHERE id = ?
         `,
       )
-      .bind(now, eventId)
+      .bind(now, now, eventId)
       .run();
 
     return json({ ok: true }, 200, warningHeaders);
@@ -243,11 +258,11 @@ export const PATCH: APIRoute = async (context) => {
       .prepare(
         `
           UPDATE mint_events
-          SET status = 'failed', failed_at = ?, failure_reason = ?
+          SET status = 'failed', failed_at = ?, updated_at = ?, failure_reason = ?
           WHERE id = ?
         `,
       )
-      .bind(now, failureReason, eventId)
+      .bind(now, now, failureReason, eventId)
       .run();
 
     return json({ ok: true }, 200, warningHeaders);
@@ -262,11 +277,11 @@ export const PATCH: APIRoute = async (context) => {
       .prepare(
         `
           UPDATE mint_events
-          SET status = 'failed', failed_at = ?, failure_reason = ?
+          SET status = 'failed', failed_at = ?, updated_at = ?, failure_reason = ?
           WHERE id = ?
         `,
       )
-      .bind(now, failureReason, eventId)
+      .bind(now, now, failureReason, eventId)
       .run();
 
     return json({ ok: true }, 200, warningHeaders);
@@ -282,7 +297,7 @@ export const PATCH: APIRoute = async (context) => {
       .prepare(
         `
           UPDATE mint_events
-          SET status = 'queued', failed_at = NULL, failure_reason = ?
+          SET status = 'queued', failed_at = NULL, updated_at = NULL, tx_hash = NULL, mint_tx_hash = NULL, submitted_at = NULL, failure_reason = ?
           WHERE id = ?
         `,
       )

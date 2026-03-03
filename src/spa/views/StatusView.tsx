@@ -50,6 +50,12 @@ export function StatusView() {
             <dd>{status.d1Ping ? 'ok' : 'failed'}</dd>
             <dt>Chain</dt>
             <dd>{status.chain.name} (id {status.chain.id})</dd>
+            <dt>On-chain Minting</dt>
+            <dd>{status.onchain.configured ? 'configured' : `not configured${status.onchain.error ? ` (${status.onchain.error})` : ''}`}</dd>
+            <dt>Token Contract</dt>
+            <dd>{status.onchain.contractAddress || 'not configured'}</dd>
+            <dt>Token Decimals</dt>
+            <dd>{status.onchain.decimals}</dd>
             <dt>Admin Allowlist</dt>
             <dd>{status.adminAllowlistConfigured ? 'configured' : 'not configured'}</dd>
             <dt>Access JWT Verify</dt>
