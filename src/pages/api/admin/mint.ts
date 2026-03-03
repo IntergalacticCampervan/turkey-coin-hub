@@ -36,7 +36,7 @@ async function findMintEventByIdempotencyKey(db: NonNullable<ReturnType<typeof g
         SELECT
           id,
           status,
-          COALESCE(tx_hash, mint_tx_hash) AS txHash,
+          mint_tx_hash AS txHash,
           failure_reason AS failureReason
         FROM mint_events
         WHERE idempotency_key = ?
@@ -45,6 +45,11 @@ async function findMintEventByIdempotencyKey(db: NonNullable<ReturnType<typeof g
     )
     .bind(idempotencyKey)
     .first<{ id: string; status: string; txHash: string | null; failureReason: string | null }>();
+}
+
+function isDuplicateIdempotencyError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  return /unique/i.test(message) && /idempotency/i.test(message);
 }
 
 export const POST: APIRoute = async (context) => {
@@ -179,35 +184,49 @@ export const POST: APIRoute = async (context) => {
     }
 
     return json({ ok: true, eventId, txHash: mintedEvent?.txHash ?? null }, 200, warningHeaders);
-  } catch {
-    const existingEvent = await findMintEventByIdempotencyKey(db, idempotencyKey);
+  } catch (error) {
+    if (isDuplicateIdempotencyError(error)) {
+      try {
+        const existingEvent = await findMintEventByIdempotencyKey(db, idempotencyKey);
 
-    if (existingEvent) {
-      if (existingEvent.status === 'failed') {
-        return json(
-          {
-            ok: false,
-            error: existingEvent.failureReason || 'Mint submission failed',
-            eventId: existingEvent.id,
-            txHash: existingEvent.txHash,
-          },
-          409,
-          warningHeaders,
-        );
+        if (existingEvent) {
+          if (existingEvent.status === 'failed') {
+            return json(
+              {
+                ok: false,
+                error: existingEvent.failureReason || 'Mint submission failed',
+                eventId: existingEvent.id,
+                txHash: existingEvent.txHash,
+              },
+              409,
+              warningHeaders,
+            );
+          }
+
+          return json(
+            {
+              ok: true,
+              eventId: existingEvent.id,
+              txHash: existingEvent.txHash,
+              warning: 'Duplicate mint request reused existing event.',
+            },
+            200,
+            warningHeaders,
+          );
+        }
+      } catch {
+        // Fall through to generic duplicate response if lookup fails.
       }
 
-      return json(
-        {
-          ok: true,
-          eventId: existingEvent.id,
-          txHash: existingEvent.txHash,
-          warning: 'Duplicate mint request reused existing event.',
-        },
-        200,
-        warningHeaders,
-      );
+      return json({ ok: false, error: 'Duplicate idempotencyKey' }, 409, warningHeaders);
     }
 
-    return json({ ok: false, error: 'Failed to queue mint event' }, 409, warningHeaders);
+    const message = error instanceof Error ? error.message : String(error ?? '');
+
+    if (/no such column/i.test(message)) {
+      return json({ ok: false, error: 'Mint event schema is outdated; run D1 migrations' }, 500, warningHeaders);
+    }
+
+    return json({ ok: false, error: 'Failed to queue mint event' }, 500, warningHeaders);
   }
 };
