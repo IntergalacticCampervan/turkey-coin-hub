@@ -8,7 +8,7 @@ import { StatusBadge, TerminalText } from './TerminalPrimitives';
 
 const NAV_ITEMS = [
   { to: '/', label: 'DASHBOARD', icon: Trophy },
-  { to: '/auth/access-login?return_to=/admin', label: 'ADMIN', icon: Shield, external: true },
+  { to: '/admin', label: 'ADMIN', icon: Shield, external: true },
   { to: '/api-specs', label: 'API SPECS', icon: Code },
   { to: '/status', label: 'STATUS', icon: Activity },
 ];
