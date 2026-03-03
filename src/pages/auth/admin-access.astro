@@ -147,7 +147,7 @@ const adminReady = url.searchParams.get('admin') === '1';
           </div>
           <p>Authenticates requests to <code>/api/users*</code>, which the admin panel needs to load the user list.</p>
           <div class="button-row">
-            <a class="button" href="/api/users/auth">Authorize Users API</a>
+            <a class="button" href={`/api/users/auth?${url.searchParams.toString()}`}>Authorize Users API</a>
           </div>
         </section>
 
@@ -158,7 +158,7 @@ const adminReady = url.searchParams.get('admin') === '1';
           </div>
           <p>Authenticates requests to <code>/api/admin/*</code>, which the admin panel needs for mint events and actions.</p>
           <div class="button-row">
-            <a class="button" href="/api/admin/auth">Authorize Admin API</a>
+            <a class="button" href={`/api/admin/auth?${url.searchParams.toString()}`}>Authorize Admin API</a>
           </div>
         </section>
       </div>

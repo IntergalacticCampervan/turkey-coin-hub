@@ -12,6 +12,11 @@ type Notice = { tone: 'success' | 'error'; text: string } | null;
 const MISSING_HEADERS_ERROR = 'Missing Cloudflare Access authentication headers';
 const ACCESS_LOGIN_PATH = '/auth/admin-access';
 
+function generateIdempotencyKey(walletAddress: string, amount: number): string {
+  const uniquePart = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return `${walletAddress}-${amount}-${uniquePart}`;
+}
+
 function getAdminAuthError(status: number, error: string | null, requiresAccessLogin?: boolean): string | null {
   if (!requiresAccessLogin && status !== 401 && status !== 403) {
     return null;
@@ -148,13 +153,28 @@ export function AdminView() {
 
     setIssuing(true);
 
-    const key = idempotencyKey.trim() || `${selectedWallet}-${parsedAmount}-${Date.now()}`;
-    const result = await postMint({
+    const requestKey = idempotencyKey.trim() || generateIdempotencyKey(selectedWallet, parsedAmount);
+
+    let result = await postMint({
       walletAddress: selectedWallet,
       amount: parsedAmount,
       reason: reason.trim() || 'manual reward',
-      idempotencyKey: key,
+      idempotencyKey: requestKey,
     });
+
+    if (
+      !result.ok &&
+      result.status === 409 &&
+      !idempotencyKey.trim() &&
+      (result.error || '').toLowerCase().includes('duplicate idempotencykey')
+    ) {
+      result = await postMint({
+        walletAddress: selectedWallet,
+        amount: parsedAmount,
+        reason: reason.trim() || 'manual reward',
+        idempotencyKey: generateIdempotencyKey(selectedWallet, parsedAmount),
+      });
+    }
 
     if (result.warning) {
       setWarning(result.warning);
