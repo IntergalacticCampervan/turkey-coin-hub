@@ -3,6 +3,7 @@ import type { APIRoute } from 'astro';
 import { getAdminAuthEnv } from '../../lib/auth';
 import { APP_CHAIN_META } from '../../lib/chain';
 import { getDB } from '../../lib/db';
+import { getOnchainEnv, getOnchainStatusSummary } from '../../lib/onchain';
 
 export const prerender = false;
 
@@ -31,6 +32,7 @@ export const GET: APIRoute = async (context) => {
   }
 
   const authEnv = getAdminAuthEnv(context.locals);
+  const onchain = getOnchainStatusSummary(getOnchainEnv(context.locals));
   const adminAllowlistConfigured = Boolean(
     authEnv.ADMIN_SUBJECT_ALLOWLIST?.trim() || authEnv.ADMIN_EMAIL_ALLOWLIST?.trim(),
   );
@@ -42,6 +44,7 @@ export const GET: APIRoute = async (context) => {
     hasD1: Boolean(db),
     d1Ping,
     chain: APP_CHAIN_META,
+    onchain,
     adminAllowlistConfigured,
     accessJwtConfigured,
     adminBypassEnabled,

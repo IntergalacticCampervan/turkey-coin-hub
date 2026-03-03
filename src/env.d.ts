@@ -5,6 +5,10 @@ type Runtime = import('@astrojs/cloudflare').Runtime<{
   CF_ACCESS_TEAM_DOMAIN?: string;
   CF_ACCESS_AUD?: string;
   ADMIN_AUTH_BYPASS_LOCAL?: string;
+  TOKEN_CONTRACT_ADDRESS?: string;
+  TOKEN_MINTER_PRIVATE_KEY?: string;
+  TOKEN_DECIMALS?: string;
+  TOKEN_RPC_URL?: string;
 }>;
 
 declare namespace App {
