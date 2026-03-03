@@ -10,7 +10,7 @@ import { DataPanel, StatusBadge, TerminalText } from '../components/TerminalPrim
 
 type Notice = { tone: 'success' | 'error'; text: string } | null;
 const MISSING_HEADERS_ERROR = 'Missing Cloudflare Access authentication headers';
-const ACCESS_LOGIN_PATH = '/admin';
+const ACCESS_LOGIN_PATH = '/auth/admin-access';
 
 function getAdminAuthError(status: number, error: string | null, requiresAccessLogin?: boolean): string | null {
   if (!requiresAccessLogin && status !== 401 && status !== 403) {
@@ -47,7 +47,6 @@ export function AdminView() {
   const [notice, setNotice] = useState<Notice>(null);
   const [issuing, setIssuing] = useState(false);
   const [updatingEventId, setUpdatingEventId] = useState<string | null>(null);
-  const [redirectingToAccess, setRedirectingToAccess] = useState(false);
 
   const normalizedFilterWallet = useMemo(() => filterWallet.trim().toLowerCase(), [filterWallet]);
 
@@ -121,16 +120,6 @@ export function AdminView() {
     const timer = window.setInterval(loadEvents, 15_000);
     return () => window.clearInterval(timer);
   }, [filterStatus, normalizedFilterWallet, authError]);
-
-  useEffect(() => {
-    if (authError !== MISSING_HEADERS_ERROR) {
-      setRedirectingToAccess(false);
-      return;
-    }
-
-    setRedirectingToAccess(true);
-    window.location.replace(ACCESS_LOGIN_PATH);
-  }, [authError]);
 
   async function handleIssueTokens(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -210,19 +199,6 @@ export function AdminView() {
   }
 
   if (authError) {
-    if (redirectingToAccess && authError === MISSING_HEADERS_ERROR) {
-      return (
-        <div className="view-grid narrow">
-          <DataPanel status="syncing">
-            <div className="onboard-center">
-              <TerminalText className="panel-heading glow">AUTHORIZING ADMIN ACCESS</TerminalText>
-              <TerminalText className="muted-text">Redirecting to Cloudflare Access...</TerminalText>
-            </div>
-          </DataPanel>
-        </div>
-      );
-    }
-
     return (
       <div className="view-grid narrow">
         <div className="view-header">
@@ -247,7 +223,7 @@ export function AdminView() {
               {authError === MISSING_HEADERS_ERROR ? (
                 <div className="admin-auth-actions">
                   <a href={ACCESS_LOGIN_PATH} className="primary-cta">
-                    SIGN IN WITH ACCESS
+                    COMPLETE ADMIN ACCESS
                   </a>
                 </div>
               ) : null}
