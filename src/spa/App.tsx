@@ -10,6 +10,7 @@ import { FXOverlay } from './components/FXOverlay';
 import { DataPanel, TerminalText } from './components/TerminalPrimitives';
 import { getLeaderboardWithHeaders } from './lib/api';
 import { AdminView } from './views/AdminView';
+import { ApiSpecsView } from './views/ApiSpecsView';
 import { DashboardView } from './views/DashboardView';
 import { OnboardingView } from './views/OnboardingView';
 import { StatusView } from './views/StatusView';
@@ -187,10 +188,11 @@ function PlatformGate() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<AppShell />}>
-          <Route index element={<DashboardView />} />
-          <Route path="onboard" element={<Navigate to="/" replace />} />
-          <Route path="admin" element={<AdminView />} />
+          <Route path="/" element={<AppShell />}>
+            <Route index element={<DashboardView />} />
+            <Route path="api-specs" element={<ApiSpecsView />} />
+            <Route path="onboard" element={<Navigate to="/" replace />} />
+            <Route path="admin" element={<AdminView />} />
           <Route path="status" element={<StatusView />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
