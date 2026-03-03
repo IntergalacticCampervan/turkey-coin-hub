@@ -19,6 +19,7 @@ import './styles/app.css';
 
 type GateState = 'checking' | 'needsOnboarding' | 'authenticating' | 'ready';
 type GateReason = 'wallet_disconnected' | 'wallet_not_onboarded' | 'verification_failed' | null;
+const BOOT_SEEN_SESSION_KEY = 'turkeycoin:boot-seen';
 
 function hasWalletOnboarded(rows: unknown[], walletAddress: string): boolean {
   const normalizedWallet = walletAddress.trim().toLowerCase();
@@ -33,7 +34,7 @@ function hasWalletOnboarded(rows: unknown[], walletAddress: string): boolean {
   });
 }
 
-function PlatformGate() {
+function PlatformGate({ onOnboardingComplete }: { onOnboardingComplete: () => void }) {
   const { address, isConnected } = useAccount();
   const { reconnectAsync } = useReconnect();
   const [gateState, setGateState] = useState<GateState>('checking');
@@ -178,7 +179,10 @@ function PlatformGate() {
           fullscreen
           gateReason={gateReason}
           gateError={gateError}
-          onOnboardingComplete={() => setRefreshToken((value) => value + 1)}
+          onOnboardingComplete={() => {
+            onOnboardingComplete();
+            setRefreshToken((value) => value + 1);
+          }}
           onRetryGateCheck={() => setRefreshToken((value) => value + 1)}
         />
       </div>
@@ -202,11 +206,29 @@ function PlatformGate() {
 }
 
 export default function App() {
-  const [bootDone, setBootDone] = useState(false);
+  const [bootDone, setBootDone] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    return window.sessionStorage.getItem(BOOT_SEEN_SESSION_KEY) === 'true';
+  });
 
   useEffect(() => {
     document.documentElement.classList.add('dark');
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (bootDone) {
+      window.sessionStorage.setItem(BOOT_SEEN_SESSION_KEY, 'true');
+    } else {
+      window.sessionStorage.removeItem(BOOT_SEEN_SESSION_KEY);
+    }
+  }, [bootDone]);
 
   useEffect(() => {
     // Failsafe: never let boot animation block the app indefinitely.
@@ -226,7 +248,7 @@ export default function App() {
       </div>
       {bootDone ? (
         <AppErrorBoundary>
-          <PlatformGate />
+          <PlatformGate onOnboardingComplete={() => setBootDone(false)} />
         </AppErrorBoundary>
       ) : (
         <BootSequence onComplete={() => setBootDone(true)} />
