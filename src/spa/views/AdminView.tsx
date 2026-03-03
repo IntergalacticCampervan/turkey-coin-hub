@@ -10,7 +10,7 @@ import { DataPanel, StatusBadge, TerminalText } from '../components/TerminalPrim
 
 type Notice = { tone: 'success' | 'error'; text: string } | null;
 const MISSING_HEADERS_ERROR = 'Missing Cloudflare Access authentication headers';
-const ACCESS_LOGIN_PATH = '/auth/access-login?return_to=/admin';
+const ACCESS_LOGIN_PATH = '/admin';
 
 function getAdminAuthError(status: number, error: string | null, requiresAccessLogin?: boolean): string | null {
   if (!requiresAccessLogin && status !== 401 && status !== 403) {
