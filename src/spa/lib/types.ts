@@ -51,6 +51,14 @@ export type StatusResponse = {
     name: string;
     slug: string;
   };
+  onchain: {
+    configured: boolean;
+    chainId: number;
+    rpcUrl: string;
+    contractAddress: string | null;
+    decimals: number;
+    error: string | null;
+  };
   adminAllowlistConfigured: boolean;
   accessJwtConfigured: boolean;
   adminBypassEnabled: boolean;
