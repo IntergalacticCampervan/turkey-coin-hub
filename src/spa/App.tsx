@@ -219,6 +219,9 @@ export default function App() {
   return (
     <Web3Provider>
       <FXOverlay />
+      <div className="alpha-ribbon" aria-hidden="true">
+        ALPHA
+      </div>
       {bootDone ? (
         <AppErrorBoundary>
           <PlatformGate />

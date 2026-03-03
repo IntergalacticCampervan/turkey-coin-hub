@@ -3,6 +3,8 @@ import type { APIRoute } from 'astro';
 import { getAdminAuthEnv, requireAccessAuth } from '../../../lib/auth';
 import { APP_CHAIN_META } from '../../../lib/chain';
 import { getDB } from '../../../lib/db';
+import { processMintLifecycle } from '../../../lib/mintProcessor';
+import { getOnchainEnv, getOnchainStatusSummary } from '../../../lib/onchain';
 
 export const prerender = false;
 
@@ -63,6 +65,7 @@ export const POST: APIRoute = async (context) => {
   if (!db) {
     return json({ ok: false, error: 'D1 is not configured' }, 503, warningHeaders);
   }
+  const onchainEnv = getOnchainEnv(context.locals);
 
   const eventId = randomId();
   const now = new Date().toISOString();
@@ -111,8 +114,53 @@ export const POST: APIRoute = async (context) => {
       )
       .run();
 
-    // TODO: signer worker should pick queued events, submit tx, and move status to submitted/confirmed/failed.
-    return json({ ok: true, eventId, txHash: null }, 200, warningHeaders);
+    const processingResult = await processMintLifecycle(db, onchainEnv, {
+      queuedLimit: 1,
+      submittedLimit: 10,
+    });
+
+    const mintedEvent = await db
+      .prepare(
+        `
+          SELECT
+            status,
+            COALESCE(tx_hash, mint_tx_hash) AS txHash,
+            failure_reason AS failureReason
+          FROM mint_events
+          WHERE id = ?
+          LIMIT 1
+        `,
+      )
+      .bind(eventId)
+      .first<{ status: string; txHash: string | null; failureReason: string | null }>();
+
+    if (!processingResult.configured) {
+      return json(
+        {
+          ok: true,
+          eventId,
+          txHash: null,
+          warning: `Mint queued but on-chain submission is not configured: ${getOnchainStatusSummary(onchainEnv).error}`,
+        },
+        200,
+        warningHeaders,
+      );
+    }
+
+    if (mintedEvent?.status === 'failed') {
+      return json(
+        {
+          ok: false,
+          error: mintedEvent.failureReason || 'Mint submission failed',
+          eventId,
+          txHash: null,
+        },
+        502,
+        warningHeaders,
+      );
+    }
+
+    return json({ ok: true, eventId, txHash: mintedEvent?.txHash ?? null }, 200, warningHeaders);
   } catch {
     return json(
       { ok: false, error: 'Failed to queue mint event (possible duplicate idempotencyKey)' },

@@ -50,9 +50,16 @@ ADMIN_EMAIL_ALLOWLIST=
 CF_ACCESS_TEAM_DOMAIN=
 CF_ACCESS_AUD=
 ADMIN_AUTH_BYPASS_LOCAL=false
+TOKEN_CONTRACT_ADDRESS=
+TOKEN_MINTER_PRIVATE_KEY=
+TOKEN_DECIMALS=18
+TOKEN_RPC_URL=
 ```
 
 `ADMIN_SUBJECT_ALLOWLIST` and `ADMIN_EMAIL_ALLOWLIST` are comma-separated.
+`TOKEN_MINTER_PRIVATE_KEY` should be the 0x-prefixed private key for the server-side mint signer.
+`TOKEN_CONTRACT_ADDRESS` should be the deployed Turkey Coin contract on Sepolia.
+`TOKEN_RPC_URL` is optional; if omitted the default chain RPC from the app config is used.
 
 ## 5) Build Astro
 
