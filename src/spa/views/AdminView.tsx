@@ -29,6 +29,14 @@ function getAdminAuthError(status: number, error: string | null, requiresAccessL
   return error || 'Admin API denied request';
 }
 
+function formatMintFailure(error: string | null | undefined, stage?: string | null): string {
+  if (!stage) {
+    return error || 'Mint request failed.';
+  }
+
+  return `${error || 'Mint request failed.'} [stage: ${stage}]`;
+}
+
 export function AdminView() {
   const { isConnected } = useAccount();
   const [users, setUsers] = useState<UserEntry[]>([]);
@@ -192,7 +200,10 @@ export function AdminView() {
     }
 
     if (!result.ok || !result.data?.ok) {
-      setNotice({ tone: 'error', text: result.error || result.data?.error || 'Mint request failed.' });
+      setNotice({
+        tone: 'error',
+        text: formatMintFailure(result.error || result.data?.error, result.data?.failureStage),
+      });
       setIssuing(false);
       mintSubmitLockRef.current = false;
       return;
@@ -428,6 +439,12 @@ export function AdminView() {
                     <td>{event.status}</td>
                     <td>{new Date(event.createdAt).toLocaleString()}</td>
                     <td>
+                      {event.failureStage || event.failureReason ? (
+                        <div className="muted-text">
+                          {event.failureStage ? `[${event.failureStage}] ` : ''}
+                          {event.failureReason || ''}
+                        </div>
+                      ) : null}
                       <div className="list-actions compact">
                         <button
                           type="button"
@@ -495,6 +512,15 @@ export function AdminView() {
                   <span className="event-card-label">Time</span>
                   <span className="event-card-value">{new Date(event.createdAt).toLocaleString()}</span>
                 </div>
+                {event.failureStage || event.failureReason ? (
+                  <div className="event-card-row">
+                    <span className="event-card-label">Failure</span>
+                    <span className="event-card-value">
+                      {event.failureStage ? `[${event.failureStage}] ` : ''}
+                      {event.failureReason || ''}
+                    </span>
+                  </div>
+                ) : null}
                 <div className="list-actions compact">
                   <button
                     type="button"
