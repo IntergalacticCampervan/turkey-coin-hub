@@ -30,6 +30,24 @@ const ENDPOINTS: EndpointSpec[] = [
     notes: ['Returns `x-no-db: true` when D1 is not bound in the runtime.'],
   },
   {
+    method: 'GET',
+    path: '/api/recent-mints',
+    auth: 'public',
+    description: 'Returns recent non-failed mint activity joined to onboarded user handles for the dashboard feed.',
+    response: `[
+  {
+    "id": "evt_123",
+    "handle": "campervan",
+    "walletAddress": "0xabc...123",
+    "reason": "merged PR #42",
+    "amount": "25",
+    "status": "confirmed",
+    "createdAt": "2026-03-03T12:00:00.000Z"
+  }
+]`,
+    notes: ['Returns recent `queued`, `submitted`, and `confirmed` mint events only.', 'Returns `x-no-db: true` when D1 is not bound in the runtime.'],
+  },
+  {
     method: 'POST',
     path: '/api/onboard',
     auth: 'public',
@@ -204,8 +222,8 @@ export function ApiSpecsView() {
               <span>Current API Shape</span>
             </div>
             <TerminalText as="p" className="muted-text">
-              Same-origin Astro API routes back the product today. Public endpoints cover onboarding, status, and
-              leaderboard reads. Admin endpoints cover user listing and mint lifecycle control.
+              Same-origin Astro API routes back the product today. Public endpoints cover onboarding, status,
+              leaderboard reads, and recent mint activity. Admin endpoints cover user listing and mint lifecycle control.
             </TerminalText>
           </div>
           <div className="api-overview-card">

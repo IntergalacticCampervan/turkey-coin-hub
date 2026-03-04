@@ -6,6 +6,7 @@ import type {
   MintEventStatus,
   MintResponse,
   OnboardResponse,
+  RecentMintEntry,
   StatusResponse,
   UserEntry,
 } from './types';
@@ -110,6 +111,11 @@ export async function getLeaderboardWithHeaders() {
     };
   }
 }
+
+export async function getRecentMints() {
+  return requestJson<RecentMintEntry[]>('/api/recent-mints');
+}
+
 export async function postOnboard(payload: { walletAddress: string; handle: string }) {
   return requestJson<OnboardResponse>('/api/onboard', {
     method: 'POST',

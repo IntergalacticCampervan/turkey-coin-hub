@@ -37,6 +37,52 @@ function formatMintFailure(error: string | null | undefined, stage?: string | nu
   return `${error || 'Mint request failed.'} [stage: ${stage}]`;
 }
 
+function EventActionMenu(props: {
+  event: MintEvent;
+  updatingEventId: string | null;
+  manualOverrideEnabled: boolean;
+  manualTxHash: string;
+  onUpdateStatus: (eventId: string, status: MintEventStatus, manualOverride: boolean) => void;
+}) {
+  const { event, updatingEventId, manualOverrideEnabled, manualTxHash, onUpdateStatus } = props;
+
+  return (
+    <details className="row-actions-menu">
+      <summary>Actions</summary>
+      <div className="list-actions compact">
+        <button
+          type="button"
+          disabled={updatingEventId === event.id || !manualOverrideEnabled || event.status !== 'queued' || !manualTxHash.trim()}
+          onClick={() => onUpdateStatus(event.id, 'submitted', true)}
+        >
+          Force Submitted
+        </button>
+        <button
+          type="button"
+          disabled={updatingEventId === event.id || !manualOverrideEnabled || event.status !== 'submitted'}
+          onClick={() => onUpdateStatus(event.id, 'confirmed', true)}
+        >
+          Force Confirmed
+        </button>
+        <button
+          type="button"
+          disabled={updatingEventId === event.id || !(event.status === 'queued' || event.status === 'submitted')}
+          onClick={() => onUpdateStatus(event.id, 'failed', false)}
+        >
+          Mark Failed
+        </button>
+        <button
+          type="button"
+          disabled={updatingEventId === event.id || !manualOverrideEnabled}
+          onClick={() => onUpdateStatus(event.id, 'queued', true)}
+        >
+          Requeue
+        </button>
+      </div>
+    </details>
+  );
+}
+
 export function AdminView() {
   const { isConnected } = useAccount();
   const [users, setUsers] = useState<UserEntry[]>([]);
@@ -445,39 +491,13 @@ export function AdminView() {
                           {event.failureReason || ''}
                         </div>
                       ) : null}
-                      <div className="list-actions compact">
-                        <button
-                          type="button"
-                          disabled={updatingEventId === event.id || !manualOverrideEnabled || event.status !== 'queued' || !manualTxHash.trim()}
-                          onClick={() => updateStatus(event.id, 'submitted', true)}
-                        >
-                          Force Submitted
-                        </button>
-                        <button
-                          type="button"
-                          disabled={updatingEventId === event.id || !manualOverrideEnabled || event.status !== 'submitted'}
-                          onClick={() => updateStatus(event.id, 'confirmed', true)}
-                        >
-                          Force Confirmed
-                        </button>
-                        <button
-                          type="button"
-                          disabled={
-                            updatingEventId === event.id ||
-                            !(event.status === 'queued' || event.status === 'submitted')
-                          }
-                          onClick={() => updateStatus(event.id, 'failed', false)}
-                        >
-                          Mark Failed
-                        </button>
-                        <button
-                          type="button"
-                          disabled={updatingEventId === event.id || !manualOverrideEnabled}
-                          onClick={() => updateStatus(event.id, 'queued', true)}
-                        >
-                          Requeue
-                        </button>
-                      </div>
+                      <EventActionMenu
+                        event={event}
+                        updatingEventId={updatingEventId}
+                        manualOverrideEnabled={manualOverrideEnabled}
+                        manualTxHash={manualTxHash}
+                        onUpdateStatus={updateStatus}
+                      />
                     </td>
                   </tr>
                 ))
@@ -521,41 +541,13 @@ export function AdminView() {
                     </span>
                   </div>
                 ) : null}
-                <div className="list-actions compact">
-                  <button
-                    type="button"
-                    disabled={
-                      updatingEventId === event.id ||
-                      !manualOverrideEnabled ||
-                      event.status !== 'queued' ||
-                      !manualTxHash.trim()
-                    }
-                    onClick={() => updateStatus(event.id, 'submitted', true)}
-                  >
-                    Force Submitted
-                  </button>
-                  <button
-                    type="button"
-                    disabled={updatingEventId === event.id || !manualOverrideEnabled || event.status !== 'submitted'}
-                    onClick={() => updateStatus(event.id, 'confirmed', true)}
-                  >
-                    Force Confirmed
-                  </button>
-                  <button
-                    type="button"
-                    disabled={updatingEventId === event.id || !(event.status === 'queued' || event.status === 'submitted')}
-                    onClick={() => updateStatus(event.id, 'failed', false)}
-                  >
-                    Mark Failed
-                  </button>
-                  <button
-                    type="button"
-                    disabled={updatingEventId === event.id || !manualOverrideEnabled}
-                    onClick={() => updateStatus(event.id, 'queued', true)}
-                  >
-                    Requeue
-                  </button>
-                </div>
+                <EventActionMenu
+                  event={event}
+                  updatingEventId={updatingEventId}
+                  manualOverrideEnabled={manualOverrideEnabled}
+                  manualTxHash={manualTxHash}
+                  onUpdateStatus={updateStatus}
+                />
               </div>
             ))
           )}

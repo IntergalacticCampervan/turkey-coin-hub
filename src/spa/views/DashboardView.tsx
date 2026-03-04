@@ -2,8 +2,8 @@ import { RefreshCw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import DecryptedText from '../../components/DecryptedText';
-import { getLeaderboardWithHeaders } from '../lib/api';
-import type { LeaderboardEntry } from '../lib/types';
+import { getLeaderboardWithHeaders, getRecentMints } from '../lib/api';
+import type { LeaderboardEntry, RecentMintEntry } from '../lib/types';
 import { DataPanel, StatusBadge, TerminalText } from '../components/TerminalPrimitives';
 
 function normalizeRow(raw: unknown): LeaderboardEntry | null {
@@ -35,9 +35,12 @@ function shortWallet(wallet: string): string {
 
 export function DashboardView() {
   const [rows, setRows] = useState<LeaderboardEntry[]>([]);
+  const [recentMints, setRecentMints] = useState<RecentMintEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [recentError, setRecentError] = useState<string | null>(null);
   const [noDb, setNoDb] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingRecent, setLoadingRecent] = useState(true);
 
   async function loadLeaderboard() {
     const result = await getLeaderboardWithHeaders();
@@ -58,10 +61,29 @@ export function DashboardView() {
     setLoading(false);
   }
 
+  async function loadRecentMints() {
+    const result = await getRecentMints();
+
+    if (!result.ok || !result.data) {
+      setRecentError(result.error || 'Could not load recent mint activity');
+      setLoadingRecent(false);
+      return;
+    }
+
+    setRecentMints(result.data);
+    setRecentError(null);
+    setLoadingRecent(false);
+  }
+
   useEffect(() => {
     loadLeaderboard();
+    loadRecentMints();
     const timer = window.setInterval(loadLeaderboard, 30_000);
-    return () => window.clearInterval(timer);
+    const recentTimer = window.setInterval(loadRecentMints, 30_000);
+    return () => {
+      window.clearInterval(timer);
+      window.clearInterval(recentTimer);
+    };
   }, []);
 
   const totalSupply = useMemo(
@@ -72,6 +94,18 @@ export function DashboardView() {
       }, 0),
     [rows],
   );
+
+  function statusLabel(status: RecentMintEntry['status']) {
+    if (status === 'confirmed') {
+      return 'ISSUED';
+    }
+
+    if (status === 'submitted') {
+      return 'SUBMITTED';
+    }
+
+    return 'QUEUED';
+  }
 
   return (
     <div className="view-grid">
@@ -172,6 +206,35 @@ export function DashboardView() {
                   <span className="event-card-value">{formatDateSafe(row.updatedAt)}</span>
                 </div>
               </div>
+            ))
+          )}
+        </div>
+      </DataPanel>
+
+      <DataPanel title="[ RECENT TRANSACTIONS ]">
+        {loadingRecent ? <p className="muted-text">Loading recent mint activity...</p> : null}
+        {recentError ? <p className="error-text">{recentError}</p> : null}
+
+        <div className="transaction-feed">
+          {recentMints.length === 0 ? (
+            <p className="muted-text">No recent mint activity yet.</p>
+          ) : (
+            recentMints.map((entry) => (
+              <article key={entry.id} className="transaction-row">
+                <div className="transaction-main">
+                  <div className="transaction-meta">
+                    <span>{formatDateSafe(entry.createdAt)}</span>
+                    <span className={`transaction-chip status-${entry.status}`}>{statusLabel(entry.status)}</span>
+                  </div>
+                  <div className="transaction-title">
+                    {entry.handle}
+                  </div>
+                  <TerminalText as="p" className="muted-text transaction-reason">
+                    {entry.reason}
+                  </TerminalText>
+                </div>
+                <div className="transaction-amount">+{entry.amount} TC</div>
+              </article>
             ))
           )}
         </div>

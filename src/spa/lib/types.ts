@@ -5,6 +5,16 @@ export type LeaderboardEntry = {
   updatedAt: string;
 };
 
+export type RecentMintEntry = {
+  id: string;
+  handle: string;
+  walletAddress: string;
+  reason: string;
+  amount: string;
+  status: MintEventStatus;
+  createdAt: string;
+};
+
 export type OnboardResponse = {
   ok: boolean;
   error?: string;
