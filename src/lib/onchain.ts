@@ -12,6 +12,21 @@ export type OnchainEnv = {
   TOKEN_RPC_URL?: string;
 };
 
+type OnchainSignerStatus = {
+  valid: boolean;
+  signerAddress: string | null;
+  error: string | null;
+};
+
+type MintPreparation = {
+  account: ReturnType<typeof privateKeyToAccount>;
+  publicClient: ReturnType<typeof createPublicClient>;
+  walletClient: ReturnType<typeof createWalletClient>;
+  tokenAddress: `0x${string}`;
+  decimals: number;
+  amount: bigint;
+};
+
 export function getOnchainEnv(locals: unknown): OnchainEnv {
   const runtimeEnv = (locals as { runtime?: { env?: OnchainEnv } } | undefined)?.runtime?.env;
   const localEnv = locals as OnchainEnv | undefined;
@@ -40,6 +55,41 @@ export function getOnchainConfigError(env: OnchainEnv): string | null {
   }
 
   return null;
+}
+
+export function getOnchainSignerStatus(env: OnchainEnv): OnchainSignerStatus {
+  const privateKey = env.TOKEN_MINTER_PRIVATE_KEY?.trim();
+
+  if (!privateKey) {
+    return {
+      valid: false,
+      signerAddress: null,
+      error: 'TOKEN_MINTER_PRIVATE_KEY is not configured',
+    };
+  }
+
+  if (!/^0x[a-fA-F0-9]{64}$/.test(privateKey)) {
+    return {
+      valid: false,
+      signerAddress: null,
+      error: 'TOKEN_MINTER_PRIVATE_KEY is malformed; expected 0x followed by 64 hex characters',
+    };
+  }
+
+  try {
+    const account = privateKeyToAccount(privateKey as `0x${string}`);
+    return {
+      valid: true,
+      signerAddress: account.address,
+      error: null,
+    };
+  } catch (error) {
+    return {
+      valid: false,
+      signerAddress: null,
+      error: error instanceof Error ? error.message : 'Failed to derive signer from TOKEN_MINTER_PRIVATE_KEY',
+    };
+  }
 }
 
 function getRpcUrl(env: OnchainEnv): string {
@@ -79,12 +129,36 @@ function getClients(env: OnchainEnv) {
   };
 }
 
+function prepareMintTransaction(env: OnchainEnv, input: { toWallet: string; amountTokens: string }): MintPreparation {
+  const clients = getClients(env);
+  return {
+    ...clients,
+    amount: parseUnits(input.amountTokens, clients.decimals),
+  };
+}
+
+export async function simulateMintTransaction(
+  env: OnchainEnv,
+  input: { toWallet: string; amountTokens: string },
+): Promise<{ signerAddress: string }> {
+  const { publicClient, account, tokenAddress, amount } = prepareMintTransaction(env, input);
+
+  await publicClient.simulateContract({
+    account,
+    address: tokenAddress,
+    abi: MINT_ABI,
+    functionName: 'mint',
+    args: [input.toWallet as `0x${string}`, amount],
+  });
+
+  return { signerAddress: account.address };
+}
+
 export async function submitMintTransaction(
   env: OnchainEnv,
   input: { toWallet: string; amountTokens: string },
 ): Promise<`0x${string}`> {
-  const { walletClient, tokenAddress, decimals, account } = getClients(env);
-  const amount = parseUnits(input.amountTokens, decimals);
+  const { walletClient, tokenAddress, account, amount } = prepareMintTransaction(env, input);
 
   return walletClient.writeContract({
     account,
@@ -112,12 +186,17 @@ export async function getMintReceiptStatus(env: OnchainEnv, txHash: string): Pro
 }
 
 export function getOnchainStatusSummary(env: OnchainEnv) {
+  const configError = getOnchainConfigError(env);
+  const signer = getOnchainSignerStatus(env);
+
   return {
-    configured: getOnchainConfigError(env) === null,
+    configured: configError === null && signer.valid,
     chainId: APP_CHAIN_META.id,
     rpcUrl: getRpcUrl(env),
     contractAddress: env.TOKEN_CONTRACT_ADDRESS?.trim() || null,
     decimals: getTokenDecimals(env),
-    error: getOnchainConfigError(env),
+    signerAddress: signer.signerAddress,
+    privateKeyValid: signer.valid,
+    error: configError ?? signer.error,
   };
 }

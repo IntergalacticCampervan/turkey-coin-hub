@@ -56,6 +56,10 @@ export function StatusView() {
             <dd>{status.onchain.contractAddress || 'not configured'}</dd>
             <dt>Token Decimals</dt>
             <dd>{status.onchain.decimals}</dd>
+            <dt>Minter Key</dt>
+            <dd>{status.onchain.privateKeyValid ? 'valid' : 'invalid'}</dd>
+            <dt>Minter Signer</dt>
+            <dd>{status.onchain.signerAddress || 'unavailable'}</dd>
             <dt>Admin Allowlist</dt>
             <dd>{status.adminAllowlistConfigured ? 'configured' : 'not configured'}</dd>
             <dt>Access JWT Verify</dt>

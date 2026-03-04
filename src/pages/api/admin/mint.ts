@@ -3,6 +3,7 @@ import type { APIRoute } from 'astro';
 import { getAdminAuthEnv, requireAccessAuth } from '../../../lib/auth';
 import { APP_CHAIN_META } from '../../../lib/chain';
 import { getDB } from '../../../lib/db';
+import type { MintFailureStage } from '../../../lib/mintProcessor';
 import { processMintLifecycle } from '../../../lib/mintProcessor';
 import { getOnchainEnv, getOnchainStatusSummary } from '../../../lib/onchain';
 
@@ -30,21 +31,58 @@ function randomId() {
 }
 
 async function findMintEventByIdempotencyKey(db: NonNullable<ReturnType<typeof getDB>>, idempotencyKey: string) {
-  return db
-    .prepare(
-      `
-        SELECT
-          id,
-          status,
-          mint_tx_hash AS txHash,
-          failure_reason AS failureReason
-        FROM mint_events
-        WHERE idempotency_key = ?
-        LIMIT 1
-      `,
-    )
-    .bind(idempotencyKey)
-    .first<{ id: string; status: string; txHash: string | null; failureReason: string | null }>();
+  try {
+    return await db
+      .prepare(
+        `
+          SELECT
+            id,
+            status,
+            mint_tx_hash AS txHash,
+            failure_reason AS failureReason,
+            failure_stage AS failureStage
+          FROM mint_events
+          WHERE idempotency_key = ?
+          LIMIT 1
+        `,
+      )
+      .bind(idempotencyKey)
+      .first<{
+        id: string;
+        status: string;
+        txHash: string | null;
+        failureReason: string | null;
+        failureStage: MintFailureStage | null;
+      }>();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error ?? '');
+    if (!/no such column/i.test(message) || !/failure_stage/i.test(message)) {
+      throw error;
+    }
+
+    return db
+      .prepare(
+        `
+          SELECT
+            id,
+            status,
+            mint_tx_hash AS txHash,
+            failure_reason AS failureReason,
+            NULL AS failureStage
+          FROM mint_events
+          WHERE idempotency_key = ?
+          LIMIT 1
+        `,
+      )
+      .bind(idempotencyKey)
+      .first<{
+        id: string;
+        status: string;
+        txHash: string | null;
+        failureReason: string | null;
+        failureStage: MintFailureStage | null;
+      }>();
+  }
 }
 
 function isDuplicateIdempotencyError(error: unknown): boolean {
@@ -142,20 +180,58 @@ export const POST: APIRoute = async (context) => {
       submittedLimit: 10,
     });
 
-    const mintedEvent = await db
-      .prepare(
-        `
-          SELECT
-            status,
-            COALESCE(tx_hash, mint_tx_hash) AS txHash,
-            failure_reason AS failureReason
-          FROM mint_events
-          WHERE id = ?
-          LIMIT 1
-        `,
-      )
-      .bind(eventId)
-      .first<{ status: string; txHash: string | null; failureReason: string | null }>();
+    let mintedEvent:
+      | { status: string; txHash: string | null; failureReason: string | null; failureStage: MintFailureStage | null }
+      | null = null;
+
+    try {
+      mintedEvent = await db
+        .prepare(
+          `
+            SELECT
+              status,
+              COALESCE(tx_hash, mint_tx_hash) AS txHash,
+              failure_reason AS failureReason,
+              failure_stage AS failureStage
+            FROM mint_events
+            WHERE id = ?
+            LIMIT 1
+          `,
+        )
+        .bind(eventId)
+        .first<{
+          status: string;
+          txHash: string | null;
+          failureReason: string | null;
+          failureStage: MintFailureStage | null;
+        }>();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error ?? '');
+      if (!/no such column/i.test(message) || !/failure_stage/i.test(message)) {
+        throw error;
+      }
+
+      mintedEvent = await db
+        .prepare(
+          `
+            SELECT
+              status,
+              COALESCE(tx_hash, mint_tx_hash) AS txHash,
+              failure_reason AS failureReason,
+              NULL AS failureStage
+            FROM mint_events
+            WHERE id = ?
+            LIMIT 1
+          `,
+        )
+        .bind(eventId)
+        .first<{
+          status: string;
+          txHash: string | null;
+          failureReason: string | null;
+          failureStage: MintFailureStage | null;
+        }>();
+    }
 
     if (!processingResult.configured) {
       return json(
@@ -175,6 +251,7 @@ export const POST: APIRoute = async (context) => {
         {
           ok: false,
           error: mintedEvent.failureReason || 'Mint submission failed',
+          failureStage: mintedEvent.failureStage,
           eventId,
           txHash: null,
         },
@@ -195,6 +272,7 @@ export const POST: APIRoute = async (context) => {
               {
                 ok: false,
                 error: existingEvent.failureReason || 'Mint submission failed',
+                failureStage: existingEvent.failureStage,
                 eventId: existingEvent.id,
                 txHash: existingEvent.txHash,
               },
@@ -227,6 +305,6 @@ export const POST: APIRoute = async (context) => {
       return json({ ok: false, error: 'Mint event schema is outdated; run D1 migrations' }, 500, warningHeaders);
     }
 
-    return json({ ok: false, error: 'Failed to queue mint event' }, 500, warningHeaders);
+    return json({ ok: false, error: 'Failed to queue mint event', failureStage: 'queue_insert' }, 500, warningHeaders);
   }
 };

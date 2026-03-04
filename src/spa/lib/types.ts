@@ -17,6 +17,7 @@ export type UserEntry = {
 };
 
 export type MintEventStatus = 'queued' | 'submitted' | 'confirmed' | 'failed';
+export type MintFailureStage = 'queue_insert' | 'tx_simulation' | 'tx_submission' | 'receipt_check' | 'balance_update';
 
 export type MintEvent = {
   id: string;
@@ -33,12 +34,14 @@ export type MintEvent = {
   confirmedAt: string | null;
   failedAt: string | null;
   failureReason: string | null;
+  failureStage: MintFailureStage | null;
 };
 
 export type MintResponse = {
   ok: boolean;
   eventId?: string;
   txHash: string | null;
+  failureStage?: MintFailureStage | null;
   error?: string;
 };
 
@@ -57,6 +60,8 @@ export type StatusResponse = {
     rpcUrl: string;
     contractAddress: string | null;
     decimals: number;
+    signerAddress: string | null;
+    privateKeyValid: boolean;
     error: string | null;
   };
   adminAllowlistConfigured: boolean;

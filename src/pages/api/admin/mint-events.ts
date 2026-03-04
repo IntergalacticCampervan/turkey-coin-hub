@@ -24,6 +24,7 @@ type MintEvent = {
   confirmedAt: string | null;
   failedAt: string | null;
   failureReason: string | null;
+  failureStage: string | null;
 };
 
 type UpdateBody = {
@@ -107,29 +108,64 @@ export const GET: APIRoute = async (context) => {
       submittedLimit: 25,
     });
 
-    const query = `
-      SELECT
-        id,
-        COALESCE(to_wallet, wallet_address) AS toWallet,
-        COALESCE(amount_raw, CAST(amount AS TEXT)) AS amountRaw,
-        COALESCE(chain_id, 11155111) AS chainId,
-        status,
-        idempotency_key AS idempotencyKey,
-        COALESCE(tx_hash, mint_tx_hash) AS txHash,
-        COALESCE(requested_by_sub, admin_subject) AS requestedBySub,
-        requested_by_email AS requestedByEmail,
-        created_at AS createdAt,
-        submitted_at AS submittedAt,
-        confirmed_at AS confirmedAt,
-        failed_at AS failedAt,
-        failure_reason AS failureReason
-      FROM mint_events
-      ${whereClause}
-      ORDER BY created_at DESC
-      LIMIT ?
-    `;
+    let result;
+    try {
+      const query = `
+        SELECT
+          id,
+          COALESCE(to_wallet, wallet_address) AS toWallet,
+          COALESCE(amount_raw, CAST(amount AS TEXT)) AS amountRaw,
+          COALESCE(chain_id, 11155111) AS chainId,
+          status,
+          idempotency_key AS idempotencyKey,
+          COALESCE(tx_hash, mint_tx_hash) AS txHash,
+          COALESCE(requested_by_sub, admin_subject) AS requestedBySub,
+          requested_by_email AS requestedByEmail,
+          created_at AS createdAt,
+          submitted_at AS submittedAt,
+          confirmed_at AS confirmedAt,
+          failed_at AS failedAt,
+          failure_reason AS failureReason,
+          failure_stage AS failureStage
+        FROM mint_events
+        ${whereClause}
+        ORDER BY created_at DESC
+        LIMIT ?
+      `;
 
-    const result = await db.prepare(query).bind(...values, limit).all<MintEvent>();
+      result = await db.prepare(query).bind(...values, limit).all<MintEvent>();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error ?? '');
+      if (!/no such column/i.test(message) || !/failure_stage/i.test(message)) {
+        throw error;
+      }
+
+      const query = `
+        SELECT
+          id,
+          COALESCE(to_wallet, wallet_address) AS toWallet,
+          COALESCE(amount_raw, CAST(amount AS TEXT)) AS amountRaw,
+          COALESCE(chain_id, 11155111) AS chainId,
+          status,
+          idempotency_key AS idempotencyKey,
+          COALESCE(tx_hash, mint_tx_hash) AS txHash,
+          COALESCE(requested_by_sub, admin_subject) AS requestedBySub,
+          requested_by_email AS requestedByEmail,
+          created_at AS createdAt,
+          submitted_at AS submittedAt,
+          confirmed_at AS confirmedAt,
+          failed_at AS failedAt,
+          failure_reason AS failureReason,
+          NULL AS failureStage
+        FROM mint_events
+        ${whereClause}
+        ORDER BY created_at DESC
+        LIMIT ?
+      `;
+
+      result = await db.prepare(query).bind(...values, limit).all<MintEvent>();
+    }
+
     return json(result.results ?? [], 200, warningHeaders);
   } catch {
     return json([], 200, warningHeaders);
