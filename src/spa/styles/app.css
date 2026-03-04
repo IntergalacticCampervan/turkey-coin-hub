@@ -88,7 +88,7 @@ button:focus-visible {
 table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 660px;
+  min-width: 600px;
 }
 
 th,
@@ -153,6 +153,7 @@ th {
   gap: 0.45rem;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
   margin-bottom: 0.6rem;
   font-size: 0.75rem;
   letter-spacing: 0.08em;
@@ -213,7 +214,7 @@ th {
 
 .sys-title {
   font-size: 0.78rem;
-  white-space: nowrap;
+  min-width: 0;
 }
 
 .sys-time {
@@ -234,6 +235,12 @@ th {
   padding: 0.2rem;
 }
 
+.mobile-menu-label {
+  display: none;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+}
+
 .app-body {
   flex: 1;
   display: flex;
@@ -244,12 +251,26 @@ th {
   width: 240px;
   border-right: 1px solid var(--line);
   padding: 1rem;
-  background: var(--bg-overlay);
+  background: rgba(12, 15, 20, 0.98);
+  backdrop-filter: blur(0);
 }
 
 .nav-items {
   display: grid;
   gap: 0.5rem;
+}
+
+.sidebar-dismiss {
+  display: none;
+}
+
+.sidebar-dismiss-btn {
+  width: 100%;
+  min-height: 2.5rem;
+  border: 1px solid var(--line-soft);
+  background: rgba(14, 18, 24, 0.98);
+  color: var(--text-muted);
+  letter-spacing: 0.12em;
 }
 
 .nav-link {
@@ -266,6 +287,24 @@ th {
   border-color: var(--phosphor-accent);
   color: var(--phosphor-accent);
   box-shadow: var(--glow-accent);
+}
+
+.leaderboard-top-row {
+  position: relative;
+}
+
+.leaderboard-top-card {
+  border-color: rgba(42, 246, 233, 0.38);
+  box-shadow: 0 0 18px rgba(42, 246, 233, 0.08);
+}
+
+.leaderboard-top-handle {
+  position: relative;
+  color: #fff1cc;
+  text-shadow:
+    -1px 0 rgba(255, 102, 102, 0.5),
+    0 0 10px rgba(255, 153, 0, 0.24),
+    1px 0 rgba(42, 246, 233, 0.5);
 }
 
 .main-content {
@@ -436,6 +475,7 @@ th {
 
 .status-grid dd {
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .user-list {
@@ -506,6 +546,9 @@ th {
 
 .row-actions-menu .list-actions.compact {
   margin-top: 0.45rem;
+  padding: 0.55rem;
+  border: 1px solid var(--line-soft);
+  background: rgba(9, 12, 16, 0.98);
 }
 
 .form-stack,
@@ -591,6 +634,8 @@ th {
 .source-connect-group {
   display: inline-flex;
   gap: 0.35rem;
+  flex-wrap: wrap;
+  max-width: 100%;
 }
 
 .onboard-cta-stack {
@@ -614,7 +659,8 @@ th {
   font-size: 0.75rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  white-space: nowrap;
+  white-space: normal;
+  text-align: center;
   padding: 0.65rem 0.75rem;
   min-height: 2.75rem;
   display: inline-flex;
@@ -642,6 +688,9 @@ th {
   min-width: 220px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+  text-align: center;
+  white-space: normal;
+  max-width: 100%;
 }
 
 .admin-title {
@@ -695,6 +744,7 @@ th {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .api-specs-grid,
@@ -770,6 +820,8 @@ th {
   align-items: center;
   gap: 0.35rem;
   font-size: 0.74rem;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
 }
 
 .status-online,
@@ -1025,7 +1077,8 @@ th {
   color: var(--phosphor-primary);
   text-shadow: var(--glow-soft);
   font-size: 1.15rem;
-  white-space: nowrap;
+  white-space: normal;
+  text-align: right;
 }
 
 @keyframes spin {
@@ -1078,6 +1131,20 @@ th {
   .api-docs-two-col {
     grid-template-columns: 1fr;
   }
+
+  .desktop-table {
+    display: none;
+  }
+
+  .event-cards {
+    display: grid;
+    gap: 0.65rem;
+    margin-top: 0.7rem;
+  }
+
+  table {
+    min-width: 0;
+  }
 }
 
 @media (max-width: 780px) {
@@ -1090,7 +1157,7 @@ th {
 
   .top-bar-left {
     width: auto;
-    flex: 0 0 auto;
+    flex: 0 1 auto;
     overflow: hidden;
   }
 
@@ -1115,6 +1182,10 @@ th {
     text-overflow: ellipsis;
   }
 
+  .view-grid {
+    gap: 0.8rem;
+  }
+
   .source-connect-group .source-connect-btn.secondary {
     display: none;
   }
@@ -1136,6 +1207,13 @@ th {
     transform: translateX(-102%);
     transition: transform 160ms ease;
     overflow-y: auto;
+    background: rgba(9, 12, 16, 0.99);
+    box-shadow: 18px 0 40px rgba(0, 0, 0, 0.45);
+  }
+
+  .sidebar-dismiss {
+    display: block;
+    margin-bottom: 0.75rem;
   }
 
   .sidebar.open {
@@ -1185,20 +1263,6 @@ th {
     display: none;
   }
 
-  table {
-    min-width: 560px;
-  }
-
-  .desktop-table {
-    display: none;
-  }
-
-  .event-cards {
-    display: grid;
-    gap: 0.65rem;
-    margin-top: 0.7rem;
-  }
-
   .transaction-row {
     flex-direction: column;
     align-items: flex-start;
@@ -1206,6 +1270,7 @@ th {
 
   .transaction-amount {
     align-self: flex-start;
+    text-align: left;
   }
 
   .list-actions.compact {
@@ -1234,6 +1299,115 @@ th {
 
   .gate-notice {
     flex-wrap: wrap;
+  }
+
+  .status-grid {
+    grid-template-columns: 1fr;
+    gap: 0.3rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .top-bar {
+    padding: 0.7rem 0.7rem;
+    padding-top: calc(0.7rem + var(--safe-top));
+    padding-right: calc(0.7rem + var(--safe-right));
+    padding-left: calc(0.7rem + var(--safe-left));
+  }
+
+  .top-bar-right .status-badge,
+  .status-footer .status-badge {
+    display: none;
+  }
+
+  .sys-name,
+  .sys-time,
+  .chain-pill {
+    display: none;
+  }
+
+  .menu-box-icon {
+    display: none;
+  }
+
+  .mobile-menu-btn {
+    width: auto;
+    height: 2.4rem;
+    padding: 0.45rem 0.65rem;
+  }
+
+  .mobile-menu-label {
+    display: inline;
+  }
+
+  .source-connect-group {
+    flex-wrap: nowrap;
+  }
+
+  .source-connect-btn {
+    min-height: 2.2rem;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.68rem;
+  }
+
+  .view-title {
+    font-size: clamp(1.15rem, 7vw, 1.55rem);
+  }
+
+  .panel-heading,
+  .transaction-title {
+    font-size: 1rem;
+  }
+
+  .status-footer {
+    justify-content: flex-start;
+  }
+
+  .summary-box,
+  .data-panel {
+    padding: 0.75rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .gate-progress span {
+    min-width: 0;
+    flex: 1 1 calc(50% - 0.45rem);
+  }
+
+  .top-bar-right {
+    gap: 0.35rem;
+  }
+
+  .mobile-menu-btn {
+    width: auto;
+    height: 2.2rem;
+    padding: 0.4rem 0.55rem;
+  }
+
+  .source-connect-btn {
+    padding: 0.45rem 0.55rem;
+    font-size: 0.64rem;
+  }
+
+  .main-content {
+    padding: 0.7rem;
+    padding-bottom: calc(0.7rem + var(--safe-bottom));
+  }
+
+  .status-footer {
+    padding: 0.45rem 0.7rem;
+    padding-right: calc(0.7rem + var(--safe-right));
+    padding-left: calc(0.7rem + var(--safe-left));
+  }
+
+  .event-card-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .event-card-value {
+    text-align: left;
   }
 }
 

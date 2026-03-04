@@ -166,9 +166,9 @@ export function DashboardView() {
                 </tr>
               ) : (
                 rows.map((row, index) => (
-                  <tr key={row.walletAddress}>
+                  <tr key={row.walletAddress} className={index === 0 ? 'leaderboard-top-row' : undefined}>
                     <td>#{index + 1}</td>
-                    <td>{row.handle}</td>
+                    <td className={index === 0 ? 'leaderboard-top-handle' : undefined}>{row.handle}</td>
                     <td>{shortWallet(row.walletAddress)}</td>
                     <td>{row.balance}</td>
                     <td>{formatDateSafe(row.updatedAt)}</td>
@@ -184,14 +184,17 @@ export function DashboardView() {
             <p className="muted-text">No leaderboard rows yet.</p>
           ) : (
             rows.map((row, index) => (
-              <div key={`mobile-${row.walletAddress}`} className="event-card">
+              <div
+                key={`mobile-${row.walletAddress}`}
+                className={`event-card ${index === 0 ? 'leaderboard-top-card' : ''}`}
+              >
                 <div className="event-card-row">
                   <span className="event-card-label">Rank</span>
                   <span className="event-card-value">#{index + 1}</span>
                 </div>
                 <div className="event-card-row">
                   <span className="event-card-label">Handle</span>
-                  <span className="event-card-value">{row.handle}</span>
+                  <span className={`event-card-value ${index === 0 ? 'leaderboard-top-handle' : ''}`}>{row.handle}</span>
                 </div>
                 <div className="event-card-row">
                   <span className="event-card-label">Wallet</span>
