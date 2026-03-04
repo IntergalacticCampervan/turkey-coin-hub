@@ -6,7 +6,7 @@ import { useAccount, useDisconnect } from 'wagmi';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 import { postOnboard } from '../lib/api';
-import { StatusBadge, TerminalText } from '../components/TerminalPrimitives';
+import { TerminalText } from '../components/TerminalPrimitives';
 
 type Step = 'welcome' | 'wallet' | 'callsign' | 'authorization' | 'complete';
 
@@ -62,8 +62,6 @@ export function OnboardingView({
 
   const handleError = useMemo(() => validateHandle(handle), [handle]);
   const handleReady = handle.trim().length > 0 && !handleError;
-  const protocolStep = step === 'wallet' ? '1/3' : step === 'callsign' ? '2/3' : step === 'authorization' ? '3/3' : null;
-
   useEffect(() => {
     const interval = window.setInterval(() => setShowCursor((prev) => !prev), 500);
     return () => window.clearInterval(interval);
@@ -176,18 +174,6 @@ export function OnboardingView({
       <div className="protocol-grid" aria-hidden="true" />
 
       <div className="protocol-onboarding-shell">
-        <div className="protocol-status-left">
-          <StatusBadge status={step === 'authorization' ? 'syncing' : 'online'}>
-            {step === 'authorization' ? 'PROCESSING' : 'ACTIVE'}
-          </StatusBadge>
-        </div>
-
-        {protocolStep ? (
-          <div className="protocol-status-right">
-            <TerminalText>PROTOCOL STEP {protocolStep}</TerminalText>
-          </div>
-        ) : null}
-
         <a className="protocol-help" href="/help/wallet-setup" aria-label="Wallet setup guide">
           <HelpCircle size={22} />
         </a>
@@ -198,9 +184,14 @@ export function OnboardingView({
           {step === 'welcome' ? (
             <>
               <div className="protocol-title-wrap">
-                <h1 className="protocol-title">
-                  {typedText}
-                  <span className={`protocol-cursor ${showCursor ? 'visible' : ''}`} aria-hidden="true" />
+                <h1 className="protocol-title protocol-title-typed">
+                  <span className="protocol-title-ghost" aria-hidden="true">
+                    INITIATING ONBOARDING PROTOCOL
+                  </span>
+                  <span className="protocol-title-live">
+                    {typedText}
+                    <span className={`protocol-cursor ${showCursor ? 'visible' : ''}`} aria-hidden="true" />
+                  </span>
                 </h1>
                 <TerminalText className="protocol-subtitle">TURKEY COIN NETWORK ACCESS SYSTEM</TerminalText>
               </div>

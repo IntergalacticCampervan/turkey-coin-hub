@@ -2,6 +2,7 @@ import { RefreshCw } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import DecryptedText from '../../components/DecryptedText';
+import GlitchText from '../../components/GlitchText';
 import { getLeaderboardWithHeaders, getRecentMints } from '../lib/api';
 import type { LeaderboardEntry, RecentMintEntry } from '../lib/types';
 import { DataPanel, StatusBadge, TerminalText } from '../components/TerminalPrimitives';
@@ -168,7 +169,15 @@ export function DashboardView() {
                 rows.map((row, index) => (
                   <tr key={row.walletAddress} className={index === 0 ? 'leaderboard-top-row' : undefined}>
                     <td>#{index + 1}</td>
-                    <td className={index === 0 ? 'leaderboard-top-handle' : undefined}>{row.handle}</td>
+                    <td className={index === 0 ? 'leaderboard-top-handle' : undefined}>
+                      {index === 0 ? (
+                        <GlitchText as="span" className="leaderboard-handle-glitch">
+                          {row.handle}
+                        </GlitchText>
+                      ) : (
+                        row.handle
+                      )}
+                    </td>
                     <td>{shortWallet(row.walletAddress)}</td>
                     <td>{row.balance}</td>
                     <td>{formatDateSafe(row.updatedAt)}</td>
@@ -194,7 +203,15 @@ export function DashboardView() {
                 </div>
                 <div className="event-card-row">
                   <span className="event-card-label">Handle</span>
-                  <span className={`event-card-value ${index === 0 ? 'leaderboard-top-handle' : ''}`}>{row.handle}</span>
+                  <span className={`event-card-value ${index === 0 ? 'leaderboard-top-handle' : ''}`}>
+                    {index === 0 ? (
+                      <GlitchText as="span" className="leaderboard-handle-glitch">
+                        {row.handle}
+                      </GlitchText>
+                    ) : (
+                      row.handle
+                    )}
+                  </span>
                 </div>
                 <div className="event-card-row">
                   <span className="event-card-label">Wallet</span>
