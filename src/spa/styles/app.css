@@ -470,6 +470,44 @@ th {
   padding: 0.45rem 0.65rem;
 }
 
+.row-actions-menu {
+  margin-top: 0.45rem;
+  width: fit-content;
+  min-width: 8rem;
+}
+
+.row-actions-menu summary {
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.3rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--line);
+  background: rgba(10, 12, 15, 0.96);
+  color: var(--phosphor-primary);
+  cursor: pointer;
+  transition: box-shadow 150ms ease, border-color 150ms ease;
+}
+
+.row-actions-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.row-actions-menu summary:hover {
+  box-shadow: var(--glow-soft);
+  border-color: var(--phosphor-accent);
+}
+
+.row-actions-menu[open] summary {
+  border-color: var(--phosphor-accent);
+  box-shadow: var(--glow-accent);
+}
+
+.row-actions-menu .list-actions.compact {
+  margin-top: 0.45rem;
+}
+
 .form-stack,
 .form-grid {
   display: grid;
@@ -926,6 +964,70 @@ th {
   overflow-wrap: anywhere;
 }
 
+.transaction-feed {
+  display: grid;
+}
+
+.transaction-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-top: 1px solid var(--line-soft);
+}
+
+.transaction-main {
+  min-width: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.transaction-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  color: var(--text-muted);
+}
+
+.transaction-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid currentColor;
+  font-size: 0.9rem;
+}
+
+.transaction-chip.status-confirmed,
+.transaction-chip.status-submitted {
+  color: var(--phosphor-accent);
+}
+
+.transaction-chip.status-queued {
+  color: rgba(180, 189, 204, 0.8);
+}
+
+.transaction-title {
+  font-size: 1.15rem;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.transaction-reason {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.transaction-amount {
+  flex: 0 0 auto;
+  align-self: center;
+  color: var(--phosphor-primary);
+  text-shadow: var(--glow-soft);
+  font-size: 1.15rem;
+  white-space: nowrap;
+}
+
 @keyframes spin {
   from {
     transform: rotate(0deg);
@@ -1097,6 +1199,15 @@ th {
     margin-top: 0.7rem;
   }
 
+  .transaction-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .transaction-amount {
+    align-self: flex-start;
+  }
+
   .list-actions.compact {
     width: 100%;
     display: grid;
@@ -1104,6 +1215,14 @@ th {
   }
 
   .list-actions.compact button {
+    width: 100%;
+  }
+
+  .row-actions-menu {
+    width: 100%;
+  }
+
+  .row-actions-menu summary {
     width: 100%;
   }
 
