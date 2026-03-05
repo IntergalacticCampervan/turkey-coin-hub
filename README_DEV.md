@@ -82,3 +82,15 @@ npm run dev
 ```
 
 Note: plain Astro dev is useful for UI iteration, but D1 binding and Cloudflare request/runtime headers are validated best through `npm run build` + `npm run dev:cf`.
+
+## Routing + Access Notes
+
+- SPA routes live in `src/spa/App.tsx` and are mounted by Astro pages.
+- `/status` remains available, but is intentionally accessed from the dashboard terminal card rather than sidebar nav.
+- `/onboard` now redirects to `/`; onboarding is enforced by wallet/onboarding gate logic.
+- `/help/wallet-setup` includes wallet bootstrap + custom token import instructions for Turkey Coin.
+- Admin Access helper endpoints:
+  - `GET /api/users/auth` -> redirects to `/auth/admin-access?users=1`
+  - `GET /api/admin/auth` -> redirects to `/auth/admin-access?admin=1`
+- Public token metrics endpoint:
+  - `GET /api/token-stats` (on-chain total supply + transfer count)

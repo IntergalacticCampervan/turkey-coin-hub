@@ -1,15 +1,20 @@
-import { createPublicClient, createWalletClient, http, parseAbi, parseUnits } from 'viem';
+import { createPublicClient, createWalletClient, formatUnits, http, parseAbi, parseUnits } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 
 import { APP_CHAIN, APP_CHAIN_META } from './chain';
 
 const MINT_ABI = parseAbi(['function mint(address to, uint256 amount)']);
+const ERC20_READ_ABI = parseAbi([
+  'function totalSupply() view returns (uint256)',
+  'event Transfer(address indexed from, address indexed to, uint256 value)',
+]);
 
 export type OnchainEnv = {
   TOKEN_CONTRACT_ADDRESS?: string;
   TOKEN_MINTER_PRIVATE_KEY?: string;
   TOKEN_DECIMALS?: string;
   TOKEN_RPC_URL?: string;
+  TOKEN_DEPLOYMENT_BLOCK?: string;
 };
 
 type OnchainSignerStatus = {
@@ -104,6 +109,28 @@ function getTokenDecimals(env: OnchainEnv): number {
   return parsed;
 }
 
+function getDeploymentBlock(env: OnchainEnv): bigint {
+  const raw = env.TOKEN_DEPLOYMENT_BLOCK?.trim();
+  if (!raw) {
+    return 0n;
+  }
+
+  try {
+    const parsed = BigInt(raw);
+    return parsed >= 0n ? parsed : 0n;
+  } catch {
+    return 0n;
+  }
+}
+
+function getTokenAddress(env: OnchainEnv): `0x${string}` {
+  if (!env.TOKEN_CONTRACT_ADDRESS?.trim()) {
+    throw new Error('TOKEN_CONTRACT_ADDRESS is not configured');
+  }
+
+  return env.TOKEN_CONTRACT_ADDRESS.trim() as `0x${string}`;
+}
+
 function getClients(env: OnchainEnv) {
   const configError = getOnchainConfigError(env);
   if (configError) {
@@ -183,6 +210,48 @@ export async function getMintReceiptStatus(env: OnchainEnv, txHash: string): Pro
     }
     throw error;
   }
+}
+
+export async function getOnchainTokenStats(env: OnchainEnv) {
+  const tokenAddress = getTokenAddress(env);
+  const decimals = getTokenDecimals(env);
+  const publicClient = createPublicClient({
+    chain: APP_CHAIN,
+    transport: http(getRpcUrl(env)),
+  });
+  const latestBlock = await publicClient.getBlockNumber();
+  const fromBlock = getDeploymentBlock(env);
+  const chunkSize = 100_000n;
+
+  const totalSupplyRaw = await publicClient.readContract({
+    address: tokenAddress,
+    abi: ERC20_READ_ABI,
+    functionName: 'totalSupply',
+  });
+
+  let transferCount = 0;
+  for (let start = fromBlock; start <= latestBlock; start += chunkSize) {
+    const end = start + chunkSize - 1n > latestBlock ? latestBlock : start + chunkSize - 1n;
+    const logs = await publicClient.getLogs({
+      address: tokenAddress,
+      event: ERC20_READ_ABI[1],
+      fromBlock: start,
+      toBlock: end,
+    });
+    transferCount += logs.length;
+  }
+
+  return {
+    chainId: APP_CHAIN_META.id,
+    contractAddress: tokenAddress,
+    decimals,
+    totalSupplyRaw: totalSupplyRaw.toString(),
+    totalSupply: formatUnits(totalSupplyRaw, decimals),
+    totalTransfers: transferCount,
+    fromBlock: fromBlock.toString(),
+    latestBlock: latestBlock.toString(),
+    rpcUrl: getRpcUrl(env),
+  };
 }
 
 export function getOnchainStatusSummary(env: OnchainEnv) {

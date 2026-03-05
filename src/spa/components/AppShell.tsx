@@ -1,4 +1,4 @@
-import { Shield, Trophy, Activity, Code } from 'lucide-react';
+import { Shield, Trophy, Code } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 
@@ -10,7 +10,6 @@ const NAV_ITEMS = [
   { to: '/', label: 'DASHBOARD', icon: Trophy },
   { to: '/admin', label: 'ADMIN', icon: Shield, external: true },
   { to: '/api-specs', label: 'API SPECS', icon: Code },
-  { to: '/status', label: 'STATUS', icon: Activity },
 ];
 
 export function AppShell() {
@@ -40,6 +39,7 @@ export function AppShell() {
             aria-label="Toggle navigation"
           >
             <img src="/Turkeycoin.svg" alt="" aria-hidden="true" className="menu-box-icon" />
+            <span className="mobile-menu-label">MENU</span>
           </button>
           <TerminalText glow className="sys-title sys-name">
             TURKEY_COIN_SYS_v2.4.1
@@ -67,6 +67,16 @@ export function AppShell() {
         {mobileOpen ? <button type="button" className="mobile-backdrop" onClick={() => setMobileOpen(false)} /> : null}
 
         <nav id="site-nav" className={`sidebar ${mobileOpen ? 'open' : ''}`}>
+          <div className="sidebar-dismiss">
+            <button
+              type="button"
+              className="sidebar-dismiss-btn"
+              onClick={() => setMobileOpen(false)}
+              aria-label="Close navigation"
+            >
+              CLOSE
+            </button>
+          </div>
           <div className="nav-items">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;

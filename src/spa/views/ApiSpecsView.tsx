@@ -48,6 +48,25 @@ const ENDPOINTS: EndpointSpec[] = [
     notes: ['Returns recent `queued`, `submitted`, and `confirmed` mint events only.', 'Returns `x-no-db: true` when D1 is not bound in the runtime.'],
   },
   {
+    method: 'GET',
+    path: '/api/token-stats',
+    auth: 'public',
+    description: 'Returns on-chain token metrics from Sepolia (totalSupply + total Transfer events).',
+    response: `{
+  "ok": true,
+  "chainId": 11155111,
+  "contractAddress": "0xCA61aa7828f15B87cD7741f12C4188C42bca7d85",
+  "decimals": 18,
+  "totalSupplyRaw": "1000000000000000000000",
+  "totalSupply": "1000",
+  "totalTransfers": 42,
+  "fromBlock": "0",
+  "latestBlock": "1234567",
+  "rpcUrl": "https://11155111.rpc.thirdweb.com"
+}`,
+    notes: ['Uses direct on-chain reads; no external API base URL.', 'Response is cached briefly in-process to reduce RPC load.'],
+  },
+  {
     method: 'POST',
     path: '/api/onboard',
     auth: 'public',
@@ -73,8 +92,12 @@ const ENDPOINTS: EndpointSpec[] = [
   "chain": { "id": 11155111, "name": "Sepolia", "slug": "sepolia" },
   "onchain": {
     "configured": false,
+    "chainId": 11155111,
+    "rpcUrl": "https://11155111.rpc.thirdweb.com",
     "contractAddress": null,
     "decimals": 18,
+    "signerAddress": null,
+    "privateKeyValid": false,
     "error": "TOKEN_CONTRACT_ADDRESS is not configured"
   },
   "adminAllowlistConfigured": false,
@@ -114,9 +137,26 @@ const ENDPOINTS: EndpointSpec[] = [
   "txHash": "0xdef...456"
 }`,
     notes: [
+      'Validation: `amount` must be an integer between 1 and 1000; `idempotencyKey` must be at least 8 chars.',
       'Returns `200` with warning when on-chain signer config is missing and the event is only queued.',
       'Returns `502` if immediate submission fails after queuing.',
     ],
+  },
+  {
+    method: 'GET',
+    path: '/api/users/auth',
+    auth: 'admin',
+    description: 'Cloudflare Access helper redirect for the Users API scope.',
+    response: `302 Redirect -> /auth/admin-access?users=1`,
+    notes: ['Used by the Admin Access handshake page to prime Access auth for `/api/users*`.'],
+  },
+  {
+    method: 'GET',
+    path: '/api/admin/auth',
+    auth: 'admin',
+    description: 'Cloudflare Access helper redirect for the Admin API scope.',
+    response: `302 Redirect -> /auth/admin-access?admin=1`,
+    notes: ['Used by the Admin Access handshake page to prime Access auth for `/api/admin/*`.'],
   },
   {
     method: 'GET',
