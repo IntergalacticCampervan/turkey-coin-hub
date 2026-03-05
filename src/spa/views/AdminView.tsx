@@ -12,6 +12,84 @@ type Notice = { tone: 'success' | 'error'; text: string } | null;
 const MISSING_HEADERS_ERROR = 'Missing Cloudflare Access authentication headers';
 const ACCESS_LOGIN_PATH = '/auth/admin-access';
 
+const TURKEY_OPENINGS = [
+  'The hand of the turkey reaches through hyperspace and',
+  'Thus spoke the turkey at the end of the universe and',
+  'From the intergalactic farmhouse, the turkey',
+  'By decree of the cosmic turkey council, we',
+  'One for the intergalactic lunchbox, we',
+  'In the glow of the coop reactor, we',
+  'By orbit of the ninth barn moon, the turkey',
+  'The chrome-feathered oracle of Turkey Coin',
+];
+
+const TURKEY_ACTIONS = [
+  'blesses',
+  'christeneth',
+  'anoints',
+  'endorses',
+  'uplifts',
+  'rewards',
+  'commissions',
+  'accelerates',
+];
+
+const TURKEY_TARGETS = [
+  'this wallet',
+  'this callsign',
+  'this brave operator',
+  'this stellar contributor',
+  'this mission crew',
+  'the chosen account',
+  'the lunchbox champion',
+  'the coop vanguard',
+];
+
+const TURKEY_ENDINGS = [
+  'for exemplary execution.',
+  'for glorious contributions.',
+  'for mission-critical heroics.',
+  'for service to the flock.',
+  'with one calibrated token payload.',
+  'with righteous Turkey Coin energy.',
+  'for proving worthy in the barnosphere.',
+  'as foretold by the turkey stars.',
+];
+
+function randomInt(max: number): number {
+  if (max <= 0) {
+    return 0;
+  }
+
+  if (globalThis.crypto?.getRandomValues) {
+    const buffer = new Uint32Array(1);
+    globalThis.crypto.getRandomValues(buffer);
+    return buffer[0] % max;
+  }
+
+  return Math.floor(Math.random() * max);
+}
+
+function shortWallet(wallet: string): string {
+  return wallet.length > 12 ? `${wallet.slice(0, 6)}...${wallet.slice(-4)}` : wallet;
+}
+
+function generateMintReason(input?: { handle?: string; walletAddress?: string; amount?: number }): string {
+  const opening = TURKEY_OPENINGS[randomInt(TURKEY_OPENINGS.length)];
+  const action = TURKEY_ACTIONS[randomInt(TURKEY_ACTIONS.length)];
+  const baseTarget = TURKEY_TARGETS[randomInt(TURKEY_TARGETS.length)];
+  const ending = TURKEY_ENDINGS[randomInt(TURKEY_ENDINGS.length)];
+  const amountPart = input?.amount && Number.isFinite(input.amount) ? ` (${input.amount} TC)` : '';
+  const target =
+    input?.handle?.trim()
+      ? `@${input.handle.trim()}`
+      : input?.walletAddress?.trim()
+        ? shortWallet(input.walletAddress.trim())
+        : baseTarget;
+
+  return `${opening} ${action} ${target}${amountPart} ${ending}`;
+}
+
 function generateIdempotencyKey(walletAddress: string, amount: number): string {
   const uniquePart = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   return `${walletAddress}-${amount}-${uniquePart}`;
@@ -92,7 +170,8 @@ export function AdminView() {
 
   const [selectedWallet, setSelectedWallet] = useState('');
   const [amount, setAmount] = useState('');
-  const [reason, setReason] = useState('manual reward');
+  const [reason, setReason] = useState(() => generateMintReason());
+  const [reasonTouched, setReasonTouched] = useState(false);
   const [idempotencyKey, setIdempotencyKey] = useState('');
 
   const [filterStatus, setFilterStatus] = useState('');
@@ -109,6 +188,24 @@ export function AdminView() {
   const mintSubmitLockRef = useRef(false);
 
   const normalizedFilterWallet = useMemo(() => filterWallet.trim().toLowerCase(), [filterWallet]);
+  const selectedUser = useMemo(
+    () => users.find((user) => user.walletAddress.toLowerCase() === selectedWallet.toLowerCase()),
+    [users, selectedWallet],
+  );
+
+  useEffect(() => {
+    if (reasonTouched) {
+      return;
+    }
+
+    setReason(
+      generateMintReason({
+        handle: selectedUser?.handle,
+        walletAddress: selectedWallet || undefined,
+        amount: Number.isFinite(Number(amount)) ? Number(amount) : undefined,
+      }),
+    );
+  }, [selectedUser?.handle, selectedWallet, amount, reasonTouched]);
 
   async function loadUsers() {
     setLoadingUsers(true);
@@ -220,10 +317,22 @@ export function AdminView() {
 
     const requestKey = idempotencyKey.trim() || generateIdempotencyKey(selectedWallet, parsedAmount);
 
+    const finalReason =
+      reason.trim() ||
+      generateMintReason({
+        handle: selectedUser?.handle,
+        walletAddress: selectedWallet,
+        amount: parsedAmount,
+      });
+
+    if (!reason.trim()) {
+      setReason(finalReason);
+    }
+
     let result = await postMint({
       walletAddress: selectedWallet,
       amount: parsedAmount,
-      reason: reason.trim() || 'manual reward',
+      reason: finalReason,
       idempotencyKey: requestKey,
     });
 
@@ -236,7 +345,7 @@ export function AdminView() {
       result = await postMint({
         walletAddress: selectedWallet,
         amount: parsedAmount,
-        reason: reason.trim() || 'manual reward',
+        reason: finalReason,
         idempotencyKey: generateIdempotencyKey(selectedWallet, parsedAmount),
       });
     }
@@ -259,6 +368,8 @@ export function AdminView() {
     setIssuing(false);
     mintSubmitLockRef.current = false;
     setAmount('');
+    setReason(generateMintReason());
+    setReasonTouched(false);
     await loadEvents();
   }
 
@@ -386,7 +497,10 @@ export function AdminView() {
             id="reason"
             type="text"
             value={reason}
-            onChange={(event) => setReason(event.target.value)}
+            onChange={(event) => {
+              setReason(event.target.value);
+              setReasonTouched(true);
+            }}
             maxLength={120}
           />
 

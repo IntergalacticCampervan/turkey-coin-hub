@@ -85,4 +85,18 @@ export type ErrorResponse = {
   error?: string;
 };
 
+export type TokenStatsResponse = {
+  ok: boolean;
+  chainId: number;
+  contractAddress: string;
+  decimals: number;
+  totalSupplyRaw: string;
+  totalSupply: string;
+  totalTransfers: number;
+  fromBlock: string;
+  latestBlock: string;
+  rpcUrl: string;
+  error?: string;
+};
+
 export type ApiWarning = string | null;

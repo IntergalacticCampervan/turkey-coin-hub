@@ -8,7 +8,7 @@ Turkey Coin Hub now runs as a single React SPA mounted inside Astro, while Astro
 - UI: Single React SPA mounted with `client:only="react"`
 - Routing model:
   - Astro serves the shell for `/` and catch-all non-API routes via `src/pages/[...spa].astro`
-  - React Router handles SPA client routes (`/`, `/onboard`, `/admin`, `/status`)
+  - React Router handles SPA client routes (`/`, `/admin`, `/api-specs`, `/status`)
   - Astro still handles `/api/*` routes directly
 - APIs and auth: unchanged in `src/pages/api/*`
   - Same-origin API calls only (`/api/...`)
@@ -21,18 +21,28 @@ Turkey Coin Hub now runs as a single React SPA mounted inside Astro, while Astro
 
 SPA routes:
 - `/` Dashboard
-- `/onboard` Onboarding
 - `/admin` Admin
+- `/api-specs` API specs
 - `/status` Status
+- `/onboard` redirects to `/` (onboarding is now wallet-gated from initial entry flow)
 
 API routes (unchanged):
 - `GET /api/leaderboard`
+- `GET /api/recent-mints`
+- `GET /api/token-stats`
 - `POST /api/onboard`
 - `GET /api/users`
+- `GET /api/users/auth`
 - `POST /api/admin/mint`
 - `GET /api/admin/mint-events`
 - `PATCH /api/admin/mint-events`
+- `GET /api/admin/auth`
 - `GET /api/status`
+
+Navigation notes:
+- `Status` is intentionally removed from sidebar navigation.
+- Users reach full status details from the dashboard terminal card (`/status`).
+- Wallet setup and custom token import help is available at `/help/wallet-setup`.
 
 ## Important Paths
 

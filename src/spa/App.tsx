@@ -185,11 +185,6 @@ function PlatformGate({ onOnboardingComplete }: { onOnboardingComplete: () => vo
   if (gateState === 'needsOnboarding') {
     return (
       <div className="onboarding-gate">
-        <div className="gate-progress" aria-hidden="true">
-          <span className="done">BOOT</span>
-          <span className="active">AUTH</span>
-          <span>READY</span>
-        </div>
         <OnboardingView
           fullscreen
           gateReason={gateReason}
