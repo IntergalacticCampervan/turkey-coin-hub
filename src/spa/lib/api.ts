@@ -8,6 +8,7 @@ import type {
   OnboardResponse,
   RecentMintEntry,
   StatusResponse,
+  TokenStatsResponse,
   UserEntry,
 } from './types';
 
@@ -172,4 +173,8 @@ export async function patchMintEvent(payload: {
 
 export async function getStatus() {
   return requestJson<StatusResponse>('/api/status');
+}
+
+export async function getTokenStats() {
+  return requestJson<TokenStatsResponse>('/api/token-stats');
 }
