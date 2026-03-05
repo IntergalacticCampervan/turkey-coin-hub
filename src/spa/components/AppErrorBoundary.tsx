@@ -25,7 +25,7 @@ export class AppErrorBoundary extends Component<Props, State> {
       return (
         <div style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', padding: '1rem' }}>
           <div className="data-panel status-alert" style={{ maxWidth: '720px', width: '100%' }}>
-            <h2 className="view-title" style={{ marginBottom: '0.5rem' }}>SYSTEM UI ERROR</h2>
+            <h2 className="view-title" style={{ marginBottom: '0.5rem' }}>WELL, THAT'S  NOT SUPPOSED TO HAPPEN</h2>
             <p className="error-text">
               The dashboard failed to render. Refresh the page. If it persists, check browser console logs.
             </p>
