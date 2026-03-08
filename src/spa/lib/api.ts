@@ -131,7 +131,7 @@ export async function getUsers() {
 
 export async function postMint(payload: {
   walletAddress: string;
-  amount: number;
+  amount: string;
   reason: string;
   idempotencyKey: string;
 }) {

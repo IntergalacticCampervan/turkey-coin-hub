@@ -45,6 +45,10 @@ Admin mint note:
   - `"[REWARD] merged PR #42"`
   - `"[TRANSFER] team lunch contribution"`
 - Tags are optional metadata rendered in the dashboard transaction badge. Storage uses existing `mint_events.reason` (no DB migration required).
+Admin mint amount format:
+- `POST /api/admin/mint` accepts fractional amounts (for example `"0.876345"`).
+- Validation: amount must be greater than `0`, at most `1000`, and up to 6 decimal places.
+- For exact precision, send `amount` as a string in the JSON body.
 
 Navigation notes:
 - `Status` is intentionally removed from sidebar navigation.
