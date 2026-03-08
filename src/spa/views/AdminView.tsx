@@ -11,6 +11,8 @@ import { DataPanel, StatusBadge, TerminalText } from '../components/TerminalPrim
 type Notice = { tone: 'success' | 'error'; text: string } | null;
 const MISSING_HEADERS_ERROR = 'Missing Cloudflare Access authentication headers';
 const ACCESS_LOGIN_PATH = '/auth/admin-access';
+const ISSUE_TYPES = ['ISSUED', 'REWARD', 'TRANSFER', 'BONUS', 'BOUNTY'] as const;
+type IssueType = (typeof ISSUE_TYPES)[number];
 
 const TURKEY_OPENINGS = [
   'The hand of the turkey reaches through hyperspace and',
@@ -21,6 +23,26 @@ const TURKEY_OPENINGS = [
   'In the glow of the coop reactor, we',
   'By orbit of the ninth barn moon, the turkey',
   'The chrome-feathered oracle of Turkey Coin',
+  'From the fires of Mount Gobble, the turkey',
+  'In the halls beneath the Roost of Khazad Coop, we',
+  'By oath of the Fellowship of the Wing, we',
+  'From the green fields of the Shire Coop, the turkey',
+  'At the black gate of Mordor Barn, we',
+  'Under the white tree of Minas Turkeyth, we',
+  'By lantern light in Rivencoop, the turkey',
+  'From the towers of Isencoop, we',
+  'In the shadow of Barad Drumstick, the turkey',
+  'By command of the Steward of Second Breakfast, we',
+  'With feathers raised at Helm Coop Deep, we',
+  'As the eagles circle over the cooplands, the turkey',
+  'From the Red Book of Turkeymark, we',
+  'By rune and gravy, the turkey',
+  'In the age of rings and roast, we',
+  'By moon over Buckleberry Coop, the turkey',
+  'From the road that goes ever on, we',
+  'At dawn on the fifth day in the east coop, we',
+  'By old songs of Gondor Gobbler Guard, we',
+  'Through mist, mountain, and marketplace, the turkey',
 ];
 
 const TURKEY_ACTIONS = [
@@ -32,6 +54,26 @@ const TURKEY_ACTIONS = [
   'rewards',
   'commissions',
   'accelerates',
+  'crowns',
+  'consecrates',
+  'ordains',
+  'fortifies',
+  'elevates',
+  'provisions',
+  'arms',
+  'honors',
+  'salutes',
+  'vouches for',
+  'ratifies',
+  'upgrades',
+  'amplifies',
+  'anoints with second breakfast power for',
+  'decrees abundance upon',
+  'bestows barn-forged glory upon',
+  'marches in support of',
+  'entrusts with the one true drumstick',
+  'sends forth in triumph',
+  'marks as keeper of the coop flame',
 ];
 
 const TURKEY_TARGETS = [
@@ -43,6 +85,26 @@ const TURKEY_TARGETS = [
   'the chosen account',
   'the lunchbox champion',
   'the coop vanguard',
+  'the rider of roast-han',
+  'the steward of turkeyor',
+  'the fellowship quartermaster',
+  'the shieldbearer of the shire coop',
+  'the guardian of second breakfast',
+  'the keeper of the beacon fires',
+  'the goblin mode bug hunter',
+  'the architect of barnside scaling',
+  'the sage of commit mountain',
+  'the ranger of the northern backlog',
+  'the captain of the token watch',
+  'the friend of all free-range peoples',
+  'the hammer of flaky tests',
+  'the tamer of deployment dragons',
+  'the courier of hotfixes at dawn',
+  'the scribe of clean diffs',
+  'the champion of lunch and latency',
+  'the last defender of production',
+  'the scout of uncharted integrations',
+  'the guardian of the golden gravy path',
 ];
 
 const TURKEY_ENDINGS = [
@@ -54,6 +116,26 @@ const TURKEY_ENDINGS = [
   'with righteous Turkey Coin energy.',
   'for proving worthy in the barnosphere.',
   'as foretold by the turkey stars.',
+  'after a long road from bug to victory.',
+  'for keeping the beacon of uptime lit.',
+  'for courage under pager pressure.',
+  'for surviving the mines of legacy code.',
+  'for defending the realm from regressions.',
+  'for deeds sung in the halls of roast.',
+  'for carrying the sprint to Mount Deploy.',
+  'with honor, haste, and hot gravy.',
+  'by right of commit, review, and release.',
+  'for standing fast at Helm Coop Deep.',
+  'for uniting the fellowship of contributors.',
+  'for a flawless push beyond the black gate.',
+  'for restoring peace to the dashboard realm.',
+  'for banishing dark bugs into Mordor.',
+  'with the blessing of second breakfast.',
+  'for answering the call of the beacon towers.',
+  'for forging clean code in the fires of effort.',
+  'for noble service to coop, coin, and country.',
+  'for triumph in both backend and battlefield.',
+  'for earning legend status in the turkey annals.',
 ];
 
 function randomInt(max: number): number {
@@ -90,7 +172,7 @@ function generateMintReason(input?: { handle?: string; walletAddress?: string; a
   return `${opening} ${action} ${target}${amountPart} ${ending}`;
 }
 
-function generateIdempotencyKey(walletAddress: string, amount: number): string {
+function generateIdempotencyKey(walletAddress: string, amount: string): string {
   const uniquePart = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   return `${walletAddress}-${amount}-${uniquePart}`;
 }
@@ -172,6 +254,7 @@ export function AdminView() {
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState(() => generateMintReason());
   const [reasonTouched, setReasonTouched] = useState(false);
+  const [issueType, setIssueType] = useState<IssueType>('ISSUED');
   const [idempotencyKey, setIdempotencyKey] = useState('');
 
   const [filterStatus, setFilterStatus] = useState('');
@@ -294,15 +377,16 @@ export function AdminView() {
       return;
     }
 
-    const parsedAmount = Number(amount);
-    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-      setNotice({ tone: 'error', text: 'Amount (Turkey Coins) must be greater than 0.' });
+    const normalizedAmount = amount.trim();
+    if (!/^(?:0|[1-9]\d*)(?:\.\d{1,6})?$/.test(normalizedAmount)) {
+      setNotice({ tone: 'error', text: 'Amount must be a valid number with up to 6 decimal places.' });
       mintSubmitLockRef.current = false;
       return;
     }
 
-    if (!Number.isInteger(parsedAmount) || parsedAmount > 1000) {
-      setNotice({ tone: 'error', text: 'Amount must be an integer between 1 and 1000.' });
+    const parsedAmount = Number(normalizedAmount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0 || parsedAmount > 1000) {
+      setNotice({ tone: 'error', text: 'Amount must be greater than 0 and at most 1000.' });
       mintSubmitLockRef.current = false;
       return;
     }
@@ -315,7 +399,7 @@ export function AdminView() {
 
     setIssuing(true);
 
-    const requestKey = idempotencyKey.trim() || generateIdempotencyKey(selectedWallet, parsedAmount);
+    const requestKey = idempotencyKey.trim() || generateIdempotencyKey(selectedWallet, normalizedAmount);
 
     const finalReason =
       reason.trim() ||
@@ -324,6 +408,7 @@ export function AdminView() {
         walletAddress: selectedWallet,
         amount: parsedAmount,
       });
+    const taggedReason = `[${issueType}] ${finalReason}`.trim();
 
     if (!reason.trim()) {
       setReason(finalReason);
@@ -331,8 +416,8 @@ export function AdminView() {
 
     let result = await postMint({
       walletAddress: selectedWallet,
-      amount: parsedAmount,
-      reason: finalReason,
+      amount: normalizedAmount,
+      reason: taggedReason,
       idempotencyKey: requestKey,
     });
 
@@ -344,9 +429,9 @@ export function AdminView() {
     ) {
       result = await postMint({
         walletAddress: selectedWallet,
-        amount: parsedAmount,
-        reason: finalReason,
-        idempotencyKey: generateIdempotencyKey(selectedWallet, parsedAmount),
+        amount: normalizedAmount,
+        idempotencyKey: generateIdempotencyKey(selectedWallet, normalizedAmount),
+        reason: taggedReason,
       });
     }
 
@@ -483,12 +568,11 @@ export function AdminView() {
           <label htmlFor="amount">Amount (Turkey Coins)</label>
           <input
             id="amount"
-            type="number"
+            type="text"
+            inputMode="decimal"
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
-            min={1}
-            step={1}
-            placeholder="0"
+            placeholder="0.000000"
             required
           />
 
@@ -503,6 +587,15 @@ export function AdminView() {
             }}
             maxLength={120}
           />
+
+          <label htmlFor="issueType">Issuance Type</label>
+          <select id="issueType" value={issueType} onChange={(event) => setIssueType(event.target.value as IssueType)}>
+            {ISSUE_TYPES.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
+          </select>
 
           <label htmlFor="idempotencyKey">Idempotency key (optional)</label>
           <input

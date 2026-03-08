@@ -39,13 +39,17 @@ const ENDPOINTS: EndpointSpec[] = [
     "id": "evt_123",
     "handle": "campervan",
     "walletAddress": "0xabc...123",
-    "reason": "merged PR #42",
-    "amount": "25",
+    "reason": "[REWARD] merged PR #42",
+    "amount": "0.876345",
     "status": "confirmed",
     "createdAt": "2026-03-03T12:00:00.000Z"
   }
 ]`,
-    notes: ['Returns recent `queued`, `submitted`, and `confirmed` mint events only.', 'Returns `x-no-db: true` when D1 is not bound in the runtime.'],
+    notes: [
+      'Returns recent `queued`, `submitted`, and `confirmed` mint events only.',
+      'Reason may include optional issuance tag prefix like `[ISSUED]`, `[REWARD]`, `[TRANSFER]`, `[BONUS]`, `[BOUNTY]`.',
+      'Returns `x-no-db: true` when D1 is not bound in the runtime.',
+    ],
   },
   {
     method: 'GET',
@@ -127,8 +131,8 @@ const ENDPOINTS: EndpointSpec[] = [
     description: 'Queues a mint event, then attempts immediate on-chain submission when signer config exists.',
     request: `{
   "walletAddress": "0xabc...123",
-  "amount": 25,
-  "reason": "merged PR #42",
+  "amount": "0.876345",
+  "reason": "[REWARD] merged PR #42",
   "idempotencyKey": "github-pr-42-merge"
 }`,
     response: `{
@@ -137,7 +141,10 @@ const ENDPOINTS: EndpointSpec[] = [
   "txHash": "0xdef...456"
 }`,
     notes: [
-      'Validation: `amount` must be an integer between 1 and 1000; `idempotencyKey` must be at least 8 chars.',
+      'Validation: `amount` must be greater than 0, at most 1000, and can include up to 6 decimal places.',
+      'Send `amount` as a string for exact precision handling; `idempotencyKey` must be at least 8 chars.',
+      'Issuance type is carried in `reason` as an optional prefix tag (`[ISSUED]`, `[REWARD]`, `[TRANSFER]`, `[BONUS]`, `[BOUNTY]`).',
+      'No schema change is required for issuance tags; value is stored in existing `mint_events.reason`.',
       'Returns `200` with warning when on-chain signer config is missing and the event is only queued.',
       'Returns `502` if immediate submission fails after queuing.',
     ],

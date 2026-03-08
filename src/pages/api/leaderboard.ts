@@ -36,7 +36,7 @@ export const GET: APIRoute = async (context) => {
         COALESCE(b.updated_at, u.updated_at) AS updatedAt
       FROM users u
       LEFT JOIN balance_cache b ON b.wallet_address = u.wallet_address
-      ORDER BY CAST(COALESCE(b.balance, '0') AS INTEGER) DESC, u.handle ASC
+      ORDER BY CAST(COALESCE(b.balance, '0') AS REAL) DESC, u.handle ASC
       LIMIT 100
     `;
 
