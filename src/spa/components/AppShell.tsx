@@ -1,4 +1,4 @@
-import { Shield, Trophy, Code } from 'lucide-react';
+import { CircleHelp, Shield, Trophy, Code } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 
@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { to: '/', label: 'DASHBOARD', icon: Trophy },
   { to: '/admin', label: 'ADMIN', icon: Shield, external: true },
   { to: '/api-specs', label: 'API SPECS', icon: Code },
+  { to: '/help/wallet-setup', label: 'HELP', icon: CircleHelp, external: true },
 ];
 
 export function AppShell() {
@@ -80,7 +81,12 @@ export function AppShell() {
           <div className="nav-items">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
-              const active = item.label === 'ADMIN' ? location.pathname === '/admin' : location.pathname === item.to;
+              const active =
+                item.label === 'ADMIN'
+                  ? location.pathname === '/admin'
+                  : item.label === 'HELP'
+                    ? location.pathname.startsWith('/help')
+                    : location.pathname === item.to;
               return (
                 item.external ? (
                   <a key={item.to} href={item.to} className={`nav-link ${active ? 'active' : ''}`}>

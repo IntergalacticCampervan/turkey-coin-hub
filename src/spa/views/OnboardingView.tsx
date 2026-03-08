@@ -1,5 +1,5 @@
 import { CheckCircle2, HelpCircle, User, Wifi } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useAccount, useDisconnect } from 'wagmi';
 
@@ -59,6 +59,7 @@ export function OnboardingView({
   const [error, setError] = useState<string | null>(null);
   const [statusText, setStatusText] = useState('CALLSIGN AVAILABLE');
   const [authorizationProgress, setAuthorizationProgress] = useState(0);
+  const wasConnectedRef = useRef(isConnected);
 
   const handleError = useMemo(() => validateHandle(handle), [handle]);
   const handleReady = handle.trim().length > 0 && !handleError;
@@ -87,10 +88,15 @@ export function OnboardingView({
   }, [step]);
 
   useEffect(() => {
-    if (isConnected && step === 'welcome') {
-      setStep('wallet');
+    const wasConnected = wasConnectedRef.current;
+
+    if (!wasConnected && isConnected && address && (step === 'welcome' || step === 'wallet')) {
+      setError(null);
+      setStep('callsign');
     }
-  }, [isConnected, step]);
+
+    wasConnectedRef.current = isConnected;
+  }, [address, isConnected, step]);
 
   useEffect(() => {
     if (!isConnected && step !== 'welcome') {

@@ -47,6 +47,10 @@ export function getOnchainEnv(locals: unknown): OnchainEnv {
       import.meta.env.TOKEN_MINTER_PRIVATE_KEY,
     TOKEN_DECIMALS: runtimeEnv?.TOKEN_DECIMALS ?? localEnv?.TOKEN_DECIMALS ?? import.meta.env.TOKEN_DECIMALS,
     TOKEN_RPC_URL: runtimeEnv?.TOKEN_RPC_URL ?? localEnv?.TOKEN_RPC_URL ?? import.meta.env.TOKEN_RPC_URL,
+    TOKEN_DEPLOYMENT_BLOCK:
+      runtimeEnv?.TOKEN_DEPLOYMENT_BLOCK ??
+      localEnv?.TOKEN_DEPLOYMENT_BLOCK ??
+      import.meta.env.TOKEN_DEPLOYMENT_BLOCK,
   };
 }
 
@@ -220,8 +224,61 @@ export async function getOnchainTokenStats(env: OnchainEnv) {
     transport: http(getRpcUrl(env)),
   });
   const latestBlock = await publicClient.getBlockNumber();
-  const fromBlock = getDeploymentBlock(env);
-  const chunkSize = 100_000n;
+  const configuredFromBlock = getDeploymentBlock(env);
+
+  const resolveDeploymentBlock = async (): Promise<bigint> => {
+    if (configuredFromBlock > 0n) {
+      return configuredFromBlock;
+    }
+
+    // Binary search for the first block where contract bytecode exists.
+    let low = 0n;
+    let high = latestBlock;
+    let found: bigint | null = null;
+
+    while (low <= high) {
+      const mid = (low + high) / 2n;
+      const bytecode = await publicClient.getBytecode({
+        address: tokenAddress,
+        blockNumber: mid,
+      });
+
+      if (bytecode && bytecode !== '0x') {
+        found = mid;
+        high = mid - 1n;
+      } else {
+        low = mid + 1n;
+      }
+    }
+
+    return found ?? 0n;
+  };
+
+  const countTransfers = async (fromBlock: bigint): Promise<number> => {
+    const chunkSizes = [50_000n, 10_000n, 2_000n];
+    let lastError: unknown = null;
+
+    for (const chunkSize of chunkSizes) {
+      try {
+        let count = 0;
+        for (let start = fromBlock; start <= latestBlock; start += chunkSize) {
+          const end = start + chunkSize - 1n > latestBlock ? latestBlock : start + chunkSize - 1n;
+          const logs = await publicClient.getLogs({
+            address: tokenAddress,
+            event: ERC20_READ_ABI[1],
+            fromBlock: start,
+            toBlock: end,
+          });
+          count += logs.length;
+        }
+        return count;
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw lastError instanceof Error ? lastError : new Error('Failed to count Transfer events');
+  };
 
   const totalSupplyRaw = await publicClient.readContract({
     address: tokenAddress,
@@ -229,17 +286,8 @@ export async function getOnchainTokenStats(env: OnchainEnv) {
     functionName: 'totalSupply',
   });
 
-  let transferCount = 0;
-  for (let start = fromBlock; start <= latestBlock; start += chunkSize) {
-    const end = start + chunkSize - 1n > latestBlock ? latestBlock : start + chunkSize - 1n;
-    const logs = await publicClient.getLogs({
-      address: tokenAddress,
-      event: ERC20_READ_ABI[1],
-      fromBlock: start,
-      toBlock: end,
-    });
-    transferCount += logs.length;
-  }
+  const fromBlock = await resolveDeploymentBlock();
+  const transferCount = await countTransfers(fromBlock);
 
   return {
     chainId: APP_CHAIN_META.id,

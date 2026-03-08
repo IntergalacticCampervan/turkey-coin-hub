@@ -20,6 +20,7 @@ import './styles/app.css';
 type GateState = 'checking' | 'needsOnboarding' | 'authenticating' | 'ready';
 type GateReason = 'wallet_disconnected' | 'wallet_not_onboarded' | 'verification_failed' | null;
 const BOOT_SEEN_SESSION_KEY = 'turkeycoin:boot-seen';
+const WALLET_GATE_COMPLETE_SESSION_KEY = 'turkeycoin:wallet-gate-complete';
 
 function shouldBypassWalletGate(pathname: string): boolean {
   return pathname === '/admin' || pathname === '/status' || pathname === '/api-specs';
@@ -41,6 +42,13 @@ function hasWalletOnboarded(rows: unknown[], walletAddress: string): boolean {
 function PlatformGate({ onOnboardingComplete }: { onOnboardingComplete: () => void }) {
   const { address, isConnected } = useAccount();
   const { reconnectAsync } = useReconnect();
+  const [hasCompletedInitialGate, setHasCompletedInitialGate] = useState(() => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    return window.sessionStorage.getItem(WALLET_GATE_COMPLETE_SESSION_KEY) === 'true';
+  });
   const [gateState, setGateState] = useState<GateState>('checking');
   const [gateReason, setGateReason] = useState<GateReason>(null);
   const [gateError, setGateError] = useState<string | null>(null);
@@ -105,6 +113,7 @@ function PlatformGate({ onOnboardingComplete }: { onOnboardingComplete: () => vo
       setGateState('ready');
       setGateReason(null);
       setGateError(null);
+      setHasCompletedInitialGate(true);
       return () => {
         cancelled = true;
       };
@@ -119,7 +128,11 @@ function PlatformGate({ onOnboardingComplete }: { onOnboardingComplete: () => vo
       };
     }
 
-    setGateState('checking');
+    if (!hasCompletedInitialGate) {
+      setGateState('checking');
+    } else {
+      setGateState('ready');
+    }
     setGateReason(null);
     setGateError(null);
 
@@ -137,12 +150,17 @@ function PlatformGate({ onOnboardingComplete }: { onOnboardingComplete: () => vo
       }
 
       if (hasWalletOnboarded(result.rows, address)) {
-        setGateState('authenticating');
-        authTimer = window.setTimeout(() => {
-          if (!cancelled) {
-            setGateState('ready');
-          }
-        }, 700);
+        if (!hasCompletedInitialGate) {
+          setGateState('authenticating');
+          authTimer = window.setTimeout(() => {
+            if (!cancelled) {
+              setHasCompletedInitialGate(true);
+              setGateState('ready');
+            }
+          }, 700);
+        } else {
+          setGateState('ready');
+        }
         return;
       }
 
@@ -154,7 +172,19 @@ function PlatformGate({ onOnboardingComplete }: { onOnboardingComplete: () => vo
       cancelled = true;
       window.clearTimeout(authTimer);
     };
-  }, [address, bypassWalletGate, isConnected, refreshToken]);
+  }, [address, bypassWalletGate, hasCompletedInitialGate, isConnected, refreshToken]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (hasCompletedInitialGate) {
+      window.sessionStorage.setItem(WALLET_GATE_COMPLETE_SESSION_KEY, 'true');
+    } else {
+      window.sessionStorage.removeItem(WALLET_GATE_COMPLETE_SESSION_KEY);
+    }
+  }, [hasCompletedInitialGate]);
 
   if (gateState === 'checking' || gateState === 'authenticating') {
     return (
@@ -191,6 +221,7 @@ function PlatformGate({ onOnboardingComplete }: { onOnboardingComplete: () => vo
           gateError={gateError}
           onOnboardingComplete={() => {
             onOnboardingComplete();
+            setHasCompletedInitialGate(true);
             setRefreshToken((value) => value + 1);
           }}
           onRetryGateCheck={() => setRefreshToken((value) => value + 1)}
