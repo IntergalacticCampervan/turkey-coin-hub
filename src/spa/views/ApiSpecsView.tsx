@@ -39,13 +39,8 @@ const ENDPOINTS: EndpointSpec[] = [
     "id": "evt_123",
     "handle": "campervan",
     "walletAddress": "0xabc...123",
-<<<<<<< HEAD
     "reason": "[REWARD] merged PR #42",
-    "amount": "25",
-=======
-    "reason": "merged PR #42",
     "amount": "0.876345",
->>>>>>> d9120a8 (Clarify decimal mint amount docs)
     "status": "confirmed",
     "createdAt": "2026-03-03T12:00:00.000Z"
   }
