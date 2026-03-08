@@ -39,6 +39,13 @@ API routes (unchanged):
 - `GET /api/admin/auth`
 - `GET /api/status`
 
+Admin mint note:
+- `POST /api/admin/mint` now supports issuance-type tagging via `reason`, for example:
+  - `"[ISSUED] monthly admin allocation"`
+  - `"[REWARD] merged PR #42"`
+  - `"[TRANSFER] team lunch contribution"`
+- Tags are optional metadata rendered in the dashboard transaction badge. Storage uses existing `mint_events.reason` (no DB migration required).
+
 Navigation notes:
 - `Status` is intentionally removed from sidebar navigation.
 - Users reach full status details from the dashboard terminal card (`/status`).
