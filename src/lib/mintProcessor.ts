@@ -148,7 +148,7 @@ async function applyConfirmedBalance(db: D1Database, walletAddress: string, amou
         VALUES (?, ?, ?)
         ON CONFLICT(wallet_address)
         DO UPDATE SET
-          balance = CAST(CAST(balance_cache.balance AS INTEGER) + CAST(excluded.balance AS INTEGER) AS TEXT),
+          balance = CAST(ROUND(CAST(balance_cache.balance AS REAL) + CAST(excluded.balance AS REAL), 6) AS TEXT),
           updated_at = excluded.updated_at
       `,
     )

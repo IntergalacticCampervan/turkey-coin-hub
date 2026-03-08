@@ -131,7 +131,7 @@ const ENDPOINTS: EndpointSpec[] = [
     description: 'Queues a mint event, then attempts immediate on-chain submission when signer config exists.',
     request: `{
   "walletAddress": "0xabc...123",
-  "amount": 25,
+  "amount": "0.876345",
   "reason": "[REWARD] merged PR #42",
   "idempotencyKey": "github-pr-42-merge"
 }`,
@@ -141,7 +141,8 @@ const ENDPOINTS: EndpointSpec[] = [
   "txHash": "0xdef...456"
 }`,
     notes: [
-      'Validation: `amount` must be an integer between 1 and 1000; `idempotencyKey` must be at least 8 chars.',
+      'Validation: `amount` must be greater than 0, at most 1000, and can include up to 6 decimal places.',
+      'Send `amount` as a string for exact precision handling; `idempotencyKey` must be at least 8 chars.',
       'Issuance type is carried in `reason` as an optional prefix tag (`[ISSUED]`, `[REWARD]`, `[TRANSFER]`, `[BONUS]`, `[BOUNTY]`).',
       'No schema change is required for issuance tags; value is stored in existing `mint_events.reason`.',
       'Returns `200` with warning when on-chain signer config is missing and the event is only queued.',

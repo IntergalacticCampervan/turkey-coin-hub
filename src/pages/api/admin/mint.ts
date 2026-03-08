@@ -11,7 +11,7 @@ export const prerender = false;
 
 type MintBody = {
   walletAddress?: string;
-  amount?: number;
+  amount?: number | string;
   reason?: string;
   idempotencyKey?: string;
 };
@@ -106,7 +106,8 @@ export const POST: APIRoute = async (context) => {
   }
 
   const walletAddress = String(body.walletAddress ?? '').trim().toLowerCase();
-  const amount = Number(body.amount);
+  const amountRaw = String(body.amount ?? '').trim();
+  const amount = Number(amountRaw);
   const reason = String(body.reason ?? '').trim() || 'manual reward';
   const idempotencyKey = String(body.idempotencyKey ?? '').trim();
 
@@ -114,8 +115,8 @@ export const POST: APIRoute = async (context) => {
     return json({ ok: false, error: 'Invalid wallet address' }, 400, warningHeaders);
   }
 
-  if (!Number.isInteger(amount) || amount < 1 || amount > 1000) {
-    return json({ ok: false, error: 'Amount must be an integer between 1 and 1000' }, 400, warningHeaders);
+  if (!/^(?:0|[1-9]\d*)(?:\.\d{1,6})?$/.test(amountRaw) || !Number.isFinite(amount) || amount <= 0 || amount > 1000) {
+    return json({ ok: false, error: 'Amount must be greater than 0, at most 1000, with up to 6 decimals' }, 400, warningHeaders);
   }
 
   if (idempotencyKey.length < 8) {
@@ -161,7 +162,7 @@ export const POST: APIRoute = async (context) => {
       .bind(
         eventId,
         walletAddress,
-        String(amount),
+        amountRaw,
         APP_CHAIN_META.id,
         idempotencyKey,
         auth.subject,

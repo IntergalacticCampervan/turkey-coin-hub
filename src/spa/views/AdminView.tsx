@@ -172,7 +172,7 @@ function generateMintReason(input?: { handle?: string; walletAddress?: string; a
   return `${opening} ${action} ${target}${amountPart} ${ending}`;
 }
 
-function generateIdempotencyKey(walletAddress: string, amount: number): string {
+function generateIdempotencyKey(walletAddress: string, amount: string): string {
   const uniquePart = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   return `${walletAddress}-${amount}-${uniquePart}`;
 }
@@ -377,15 +377,16 @@ export function AdminView() {
       return;
     }
 
-    const parsedAmount = Number(amount);
-    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-      setNotice({ tone: 'error', text: 'Amount (Turkey Coins) must be greater than 0.' });
+    const normalizedAmount = amount.trim();
+    if (!/^(?:0|[1-9]\d*)(?:\.\d{1,6})?$/.test(normalizedAmount)) {
+      setNotice({ tone: 'error', text: 'Amount must be a valid number with up to 6 decimal places.' });
       mintSubmitLockRef.current = false;
       return;
     }
 
-    if (!Number.isInteger(parsedAmount) || parsedAmount > 1000) {
-      setNotice({ tone: 'error', text: 'Amount must be an integer between 1 and 1000.' });
+    const parsedAmount = Number(normalizedAmount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0 || parsedAmount > 1000) {
+      setNotice({ tone: 'error', text: 'Amount must be greater than 0 and at most 1000.' });
       mintSubmitLockRef.current = false;
       return;
     }
@@ -398,7 +399,7 @@ export function AdminView() {
 
     setIssuing(true);
 
-    const requestKey = idempotencyKey.trim() || generateIdempotencyKey(selectedWallet, parsedAmount);
+    const requestKey = idempotencyKey.trim() || generateIdempotencyKey(selectedWallet, normalizedAmount);
 
     const finalReason =
       reason.trim() ||
@@ -415,7 +416,7 @@ export function AdminView() {
 
     let result = await postMint({
       walletAddress: selectedWallet,
-      amount: parsedAmount,
+      amount: normalizedAmount,
       reason: taggedReason,
       idempotencyKey: requestKey,
     });
@@ -428,9 +429,9 @@ export function AdminView() {
     ) {
       result = await postMint({
         walletAddress: selectedWallet,
-        amount: parsedAmount,
+        amount: normalizedAmount,
+        idempotencyKey: generateIdempotencyKey(selectedWallet, normalizedAmount),
         reason: taggedReason,
-        idempotencyKey: generateIdempotencyKey(selectedWallet, parsedAmount),
       });
     }
 
@@ -567,12 +568,11 @@ export function AdminView() {
           <label htmlFor="amount">Amount (Turkey Coins)</label>
           <input
             id="amount"
-            type="number"
+            type="text"
+            inputMode="decimal"
             value={amount}
             onChange={(event) => setAmount(event.target.value)}
-            min={1}
-            step={1}
-            placeholder="0"
+            placeholder="0.000000"
             required
           />
 
