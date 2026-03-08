@@ -269,6 +269,10 @@ export function DashboardView() {
   }, [statusCoreLines]);
 
   function statusLabel(status: RecentMintEntry['status']) {
+    if (status === 'failed') {
+      return 'FAILED';
+    }
+
     if (status === 'confirmed') {
       return 'ISSUED';
     }
@@ -278,6 +282,16 @@ export function DashboardView() {
     }
 
     return 'QUEUED';
+  }
+
+  function parseIssueType(reason: string): { type: string | null; reason: string } {
+    const trimmed = reason.trim();
+    const match = trimmed.match(/^\[([A-Z0-9_-]{3,16})\]\s*(.+)$/);
+    if (!match) {
+      return { type: null, reason };
+    }
+
+    return { type: match[1], reason: match[2] };
   }
 
   return (
@@ -431,23 +445,27 @@ export function DashboardView() {
           {recentMints.length === 0 ? (
             <p className="muted-text">No recent mint activity yet.</p>
           ) : (
-            recentMints.map((entry) => (
-              <article key={entry.id} className="transaction-row">
-                <div className="transaction-main">
-                  <div className="transaction-meta">
-                    <span>{formatDateSafe(entry.createdAt)}</span>
-                    <span className={`transaction-chip status-${entry.status}`}>{statusLabel(entry.status)}</span>
+            recentMints.map((entry) => {
+              const parsed = parseIssueType(entry.reason);
+              const badgeLabel = entry.status === 'confirmed' ? parsed.type || 'ISSUED' : statusLabel(entry.status);
+              const badgeClass = entry.status === 'confirmed' && parsed.type ? `issue-${parsed.type.toLowerCase()}` : '';
+
+              return (
+                <article key={entry.id} className="transaction-row">
+                  <div className="transaction-main">
+                    <div className="transaction-meta">
+                      <span>{formatDateSafe(entry.createdAt)}</span>
+                      <span className={`transaction-chip status-${entry.status} ${badgeClass}`.trim()}>{badgeLabel}</span>
+                    </div>
+                    <div className="transaction-title">{entry.handle}</div>
+                    <TerminalText as="p" className="muted-text transaction-reason">
+                      {entry.status === 'confirmed' ? parsed.reason : entry.reason}
+                    </TerminalText>
                   </div>
-                  <div className="transaction-title">
-                    {entry.handle}
-                  </div>
-                  <TerminalText as="p" className="muted-text transaction-reason">
-                    {entry.reason}
-                  </TerminalText>
-                </div>
-                <div className="transaction-amount">+{entry.amount} TC</div>
-              </article>
-            ))
+                  <div className="transaction-amount">+{entry.amount} TC</div>
+                </article>
+              );
+            })
           )}
         </div>
       </DataPanel>
