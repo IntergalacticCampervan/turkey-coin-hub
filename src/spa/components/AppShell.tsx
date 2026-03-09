@@ -13,19 +13,36 @@ const NAV_ITEMS = [
   { to: '/help/wallet-setup', label: 'HELP', icon: CircleHelp, external: true },
 ];
 
-export function AppShell() {
-  const location = useLocation();
-  const [mobileOpen, setMobileOpen] = useState(false);
+function HeaderClock() {
   const [now, setNow] = useState(() => new Date());
-
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [location.pathname]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(new Date()), 1000);
     return () => window.clearInterval(timer);
   }, []);
+
+  return (
+    <TerminalText className="sys-title sys-time">
+      {now.toLocaleString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      })}
+    </TerminalText>
+  );
+}
+
+export function AppShell() {
+  const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
 
   return (
     <div className="app-shell">
@@ -45,17 +62,7 @@ export function AppShell() {
           <TerminalText glow className="sys-title sys-name">
             TURKEY_COIN_SYS_v2.4.1
           </TerminalText>
-          <TerminalText className="sys-title sys-time">
-            {now.toLocaleString('en-US', {
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit',
-              hour: '2-digit',
-              minute: '2-digit',
-              second: '2-digit',
-              hour12: false,
-            })}
-          </TerminalText>
+          <HeaderClock />
           <TerminalText className="chain-pill">CHAIN: {APP_CHAIN_META.name}</TerminalText>
         </div>
         <div className="top-bar-right">
