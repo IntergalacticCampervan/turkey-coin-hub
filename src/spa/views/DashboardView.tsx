@@ -1,5 +1,5 @@
 import { RefreshCw } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import DecryptedText from '../../components/DecryptedText';
@@ -128,6 +128,25 @@ export function DashboardView() {
   const [loading, setLoading] = useState(true);
   const [loadingRecent, setLoadingRecent] = useState(true);
   const [terminalLines, setTerminalLines] = useState<TerminalLine[]>([]);
+  const inFlightRef = useRef({
+    leaderboard: false,
+    recent: false,
+    status: false,
+    tokenStats: false,
+  });
+
+  async function runWithInFlightGuard(key: keyof typeof inFlightRef.current, fn: () => Promise<void>) {
+    if (inFlightRef.current[key]) {
+      return;
+    }
+
+    inFlightRef.current[key] = true;
+    try {
+      await fn();
+    } finally {
+      inFlightRef.current[key] = false;
+    }
+  }
 
   async function loadLeaderboard() {
     const result = await getLeaderboardWithHeaders();
@@ -185,19 +204,29 @@ export function DashboardView() {
   }
 
   useEffect(() => {
-    loadLeaderboard();
-    loadRecentMints();
-    loadStatusSnapshot();
-    loadTokenStats();
-    const timer = window.setInterval(loadLeaderboard, 30_000);
-    const recentTimer = window.setInterval(loadRecentMints, 30_000);
-    const statusTimer = window.setInterval(loadStatusSnapshot, 30_000);
-    const tokenStatsTimer = window.setInterval(loadTokenStats, 30_000);
+    const pollAll = () => {
+      if (document.visibilityState === 'hidden') {
+        return;
+      }
+
+      void runWithInFlightGuard('leaderboard', loadLeaderboard);
+      void runWithInFlightGuard('recent', loadRecentMints);
+      void runWithInFlightGuard('status', loadStatusSnapshot);
+      void runWithInFlightGuard('tokenStats', loadTokenStats);
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        pollAll();
+      }
+    };
+
+    pollAll();
+    const timer = window.setInterval(pollAll, 30_000);
+    document.addEventListener('visibilitychange', onVisibilityChange);
     return () => {
       window.clearInterval(timer);
-      window.clearInterval(recentTimer);
-      window.clearInterval(statusTimer);
-      window.clearInterval(tokenStatsTimer);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, []);
 
