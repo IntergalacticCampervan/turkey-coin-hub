@@ -13,6 +13,38 @@ const MISSING_HEADERS_ERROR = 'Missing Cloudflare Access authentication headers'
 const ACCESS_LOGIN_PATH = '/auth/admin-access';
 const ISSUE_TYPES = ['ISSUED', 'REWARD', 'TRANSFER', 'BONUS', 'BOUNTY'] as const;
 type IssueType = (typeof ISSUE_TYPES)[number];
+const REWARD_TIERS = [
+  {
+    id: 'egg',
+    title: 'Tier I - Egg of Minor Service',
+    amount: 1,
+    summary: 'Tiny helpful acts',
+  },
+  {
+    id: 'feather',
+    title: 'Tier II - Feather of Contribution',
+    amount: 5,
+    summary: 'Small contributions',
+  },
+  {
+    id: 'gobble',
+    title: 'Tier III - Gobble of Leadership',
+    amount: 10,
+    summary: 'Standup leadership and coordination',
+  },
+  {
+    id: 'drumstick',
+    title: 'Tier IV - Golden Drumstick',
+    amount: 25,
+    summary: 'Significant help for the team',
+  },
+  {
+    id: 'legendary-roast',
+    title: 'Tier V - Legendary Roast',
+    amount: 100,
+    summary: 'Rare heroic deeds',
+  },
+] as const;
 
 const TURKEY_OPENINGS = [
   'The hand of the turkey reaches through hyperspace and',
@@ -252,6 +284,7 @@ export function AdminView() {
 
   const [selectedWallet, setSelectedWallet] = useState('');
   const [amount, setAmount] = useState('');
+  const [selectedRewardTierId, setSelectedRewardTierId] = useState('');
   const [reason, setReason] = useState(() => generateMintReason());
   const [reasonTouched, setReasonTouched] = useState(false);
   const [issueType, setIssueType] = useState<IssueType>('ISSUED');
@@ -289,6 +322,15 @@ export function AdminView() {
       }),
     );
   }, [selectedUser?.handle, selectedWallet, amount, reasonTouched]);
+
+  useEffect(() => {
+    const parsedAmount = Number(amount.trim());
+    const matchingTier = Number.isFinite(parsedAmount)
+      ? REWARD_TIERS.find((tier) => tier.amount === parsedAmount)
+      : undefined;
+
+    setSelectedRewardTierId(matchingTier?.id ?? '');
+  }, [amount]);
 
   async function loadUsers() {
     setLoadingUsers(true);
@@ -566,6 +608,30 @@ export function AdminView() {
           </select>
 
           <label htmlFor="amount">Amount (Turkey Coins)</label>
+          <div className="reward-tier-picker" aria-label="Reward tier presets">
+            {REWARD_TIERS.map((tier) => {
+              const active = selectedRewardTierId === tier.id;
+              return (
+                <button
+                  key={tier.id}
+                  type="button"
+                  className={`reward-tier-card ${active ? 'active' : ''}`}
+                  aria-pressed={active}
+                  onClick={() => {
+                    setSelectedRewardTierId(tier.id);
+                    setAmount(String(tier.amount));
+                  }}
+                >
+                  <span className="reward-tier-amount">{tier.amount} TC</span>
+                  <span className="reward-tier-title">{tier.title}</span>
+                  <span className="reward-tier-summary">{tier.summary}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="muted-text reward-tier-help">
+            Doctrine presets are optional. You can still enter a custom amount up to 1000 TC.
+          </p>
           <input
             id="amount"
             type="text"

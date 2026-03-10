@@ -114,6 +114,7 @@ type TerminalLine = {
 };
 
 const MAX_TERMINAL_LINES = 6;
+const TOP_RANK_TITLE = 'HIGH GOBBLER';
 
 export function DashboardView() {
   const [rows, setRows] = useState<LeaderboardEntry[]>([]);
@@ -297,6 +298,8 @@ export function DashboardView() {
     };
   }, [statusCoreLines]);
 
+  const topRankRow = rows[0] ?? null;
+
   function statusLabel(status: RecentMintEntry['status']) {
     if (status === 'failed') {
       return 'FAILED';
@@ -384,6 +387,34 @@ export function DashboardView() {
         {noDb ? <p className="warning-text">D1 is not configured in this runtime.</p> : null}
         {error ? <p className="error-text">{error}</p> : null}
 
+        {topRankRow ? (
+          <div className="leaderboard-emperor-card">
+            <div className="leaderboard-emperor-header">
+              <TerminalText className="leaderboard-emperor-kicker">EMPEROR&apos;S FAVOR</TerminalText>
+              <span className="leaderboard-title-chip">{TOP_RANK_TITLE}</span>
+            </div>
+            <div className="leaderboard-emperor-grid">
+              <div className="leaderboard-emperor-identity">
+                <TerminalText className="metric-label">CURRENTLY RULED BY</TerminalText>
+                <div className="leaderboard-emperor-handle">
+                  <GlitchText as="span" className="leaderboard-handle-glitch">
+                    @{topRankRow.handle}
+                  </GlitchText>
+                </div>
+                <TerminalText className="muted-text">Wallet {shortWallet(topRankRow.walletAddress)}</TerminalText>
+              </div>
+              <div className="leaderboard-emperor-stat">
+                <TerminalText className="metric-label">BALANCE</TerminalText>
+                <div className="leaderboard-emperor-balance">{topRankRow.balance} TC</div>
+              </div>
+              <div className="leaderboard-emperor-stat">
+                <TerminalText className="metric-label">REIGNING SINCE</TerminalText>
+                <div className="leaderboard-emperor-updated">{formatDateSafe(topRankRow.updatedAt)}</div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         <div className="table-wrap desktop-table">
           <table>
             <thead>
@@ -405,16 +436,21 @@ export function DashboardView() {
                   <tr key={row.walletAddress} className={index === 0 ? 'leaderboard-top-row' : undefined}>
                     <td>#{index + 1}</td>
                     <td className={index === 0 ? 'leaderboard-top-handle' : undefined}>
-                      {index === 0 ? (
-                        <GlitchText as="span" className="leaderboard-handle-glitch">
-                          {row.handle}
-                        </GlitchText>
-                      ) : (
-                        row.handle
-                      )}
+                      <div className="leaderboard-handle-cell">
+                        {index === 0 ? (
+                          <>
+                            <GlitchText as="span" className="leaderboard-handle-glitch">
+                              {row.handle}
+                            </GlitchText>
+                            <span className="leaderboard-title-chip">{TOP_RANK_TITLE}</span>
+                          </>
+                        ) : (
+                          row.handle
+                        )}
+                      </div>
                     </td>
                     <td>{shortWallet(row.walletAddress)}</td>
-                    <td>{row.balance}</td>
+                    <td className={index === 0 ? 'leaderboard-top-balance' : undefined}>{row.balance}</td>
                     <td>{formatDateSafe(row.updatedAt)}</td>
                   </tr>
                 ))
@@ -439,13 +475,18 @@ export function DashboardView() {
                 <div className="event-card-row">
                   <span className="event-card-label">Handle</span>
                   <span className={`event-card-value ${index === 0 ? 'leaderboard-top-handle' : ''}`}>
-                    {index === 0 ? (
-                      <GlitchText as="span" className="leaderboard-handle-glitch">
-                        {row.handle}
-                      </GlitchText>
-                    ) : (
-                      row.handle
-                    )}
+                    <span className="leaderboard-handle-cell">
+                      {index === 0 ? (
+                        <>
+                          <GlitchText as="span" className="leaderboard-handle-glitch">
+                            {row.handle}
+                          </GlitchText>
+                          <span className="leaderboard-title-chip">{TOP_RANK_TITLE}</span>
+                        </>
+                      ) : (
+                        row.handle
+                      )}
+                    </span>
                   </span>
                 </div>
                 <div className="event-card-row">
@@ -454,7 +495,7 @@ export function DashboardView() {
                 </div>
                 <div className="event-card-row">
                   <span className="event-card-label">Balance</span>
-                  <span className="event-card-value">{row.balance}</span>
+                  <span className={`event-card-value ${index === 0 ? 'leaderboard-top-balance' : ''}`}>{row.balance}</span>
                 </div>
                 <div className="event-card-row">
                   <span className="event-card-label">Updated</span>

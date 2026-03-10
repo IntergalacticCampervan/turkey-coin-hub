@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { useAccount, useReconnect } from 'wagmi';
 
@@ -21,9 +21,10 @@ type GateState = 'checking' | 'needsOnboarding' | 'authenticating' | 'ready';
 type GateReason = 'wallet_disconnected' | 'wallet_not_onboarded' | 'verification_failed' | null;
 const BOOT_SEEN_SESSION_KEY = 'turkeycoin:boot-seen';
 const WALLET_GATE_COMPLETE_SESSION_KEY = 'turkeycoin:wallet-gate-complete';
+const TurkeyLoreView = lazy(async () => import('./views/TurkeyLoreView').then((module) => ({ default: module.TurkeyLoreView })));
 
 function shouldBypassWalletGate(pathname: string): boolean {
-  return pathname === '/admin' || pathname === '/status' || pathname === '/api-specs';
+  return pathname === '/admin' || pathname === '/status' || pathname === '/api-specs' || pathname === '/turkey-lore';
 }
 
 function hasWalletOnboarded(rows: unknown[], walletAddress: string): boolean {
@@ -232,16 +233,19 @@ function PlatformGate({ onOnboardingComplete }: { onOnboardingComplete: () => vo
 
   return (
     <BrowserRouter>
-      <Routes>
+      <Suspense fallback={<div className="view-grid"><DataPanel status="syncing"><TerminalText>LOADING ARCHIVE...</TerminalText></DataPanel></div>}>
+        <Routes>
           <Route path="/" element={<AppShell />}>
             <Route index element={<DashboardView />} />
             <Route path="api-specs" element={<ApiSpecsView />} />
             <Route path="onboard" element={<Navigate to="/" replace />} />
             <Route path="admin" element={<AdminView />} />
-          <Route path="status" element={<StatusView />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Route>
-      </Routes>
+            <Route path="status" element={<StatusView />} />
+            <Route path="turkey-lore" element={<TurkeyLoreView />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
+        </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }
