@@ -14,45 +14,69 @@ export function FXOverlay() {
       return;
     }
 
+    const lowMotion = window.matchMedia('(max-width: 767px), (prefers-reduced-motion: reduce)').matches;
+    const noiseScale = lowMotion ? 0.18 : 0.28;
+    const frameIntervalMs = lowMotion ? 0 : 90;
+    let imageData: ImageData | null = null;
+    let buffer: Uint32Array | null = null;
+    let animationId = 0;
+    let lastFrameTime = 0;
+
     const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      const width = Math.max(1, Math.floor(window.innerWidth * noiseScale));
+      const height = Math.max(1, Math.floor(window.innerHeight * noiseScale));
+      canvas.width = width;
+      canvas.height = height;
+      canvas.style.width = `${window.innerWidth}px`;
+      canvas.style.height = `${window.innerHeight}px`;
+      imageData = ctx.createImageData(width, height);
+      buffer = new Uint32Array(imageData.data.buffer);
     };
 
     resize();
     window.addEventListener('resize', resize);
 
-    let frame = 0;
-    let animationId = 0;
-    const lowMotion = window.matchMedia('(max-width: 767px), (prefers-reduced-motion: reduce)').matches;
-
     const draw = () => {
-      if (canvas.width === 0 || canvas.height === 0) {
+      if (!imageData || !buffer || canvas.width === 0 || canvas.height === 0) {
         return;
       }
 
-      if (lowMotion && frame > 0) {
+      if (document.visibilityState === 'hidden') {
         return;
       }
 
-      const imageData = ctx.createImageData(canvas.width, canvas.height);
-      const buffer = new Uint32Array(imageData.data.buffer);
+      buffer.fill(0);
 
       for (let i = 0; i < buffer.length; i += 1) {
-        if (Math.random() < 0.08) {
+        if (Math.random() < 0.025) {
           buffer[i] = 0xff0c0c0c;
         }
       }
 
       ctx.putImageData(imageData, 0, 0);
-      frame += 1;
+    };
 
-      if (!lowMotion) {
-        animationId = requestAnimationFrame(draw);
+    const tick = (timestamp: number) => {
+      if (lowMotion) {
+        if (lastFrameTime === 0) {
+          draw();
+          lastFrameTime = timestamp;
+        }
+        return;
       }
+
+      if (timestamp - lastFrameTime >= frameIntervalMs) {
+        draw();
+        lastFrameTime = timestamp;
+      }
+
+      animationId = requestAnimationFrame(tick);
     };
 
     draw();
+    if (!lowMotion) {
+      animationId = requestAnimationFrame(tick);
+    }
 
     return () => {
       window.removeEventListener('resize', resize);

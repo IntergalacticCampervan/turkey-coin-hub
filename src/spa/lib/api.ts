@@ -5,6 +5,8 @@ import type {
   MintEvent,
   MintEventStatus,
   MintResponse,
+  NominationActionResponse,
+  NominationEntry,
   OnboardResponse,
   RecentMintEntry,
   StatusResponse,
@@ -177,4 +179,29 @@ export async function getStatus() {
 
 export async function getTokenStats() {
   return requestJson<TokenStatsResponse>('/api/token-stats');
+}
+
+export async function getNominations() {
+  return requestJson<NominationEntry[]>('/api/nominations');
+}
+
+export async function postNomination(payload: {
+  nomineeWalletAddress: string;
+  nominatorWalletAddress: string;
+  rewardId: string;
+  reason: string;
+}) {
+  return requestJson<NominationActionResponse>('/api/nominations', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function postNominationSecond(payload: { nominationId: string; seconderWalletAddress: string }) {
+  return requestJson<NominationActionResponse>('/api/nominations/second', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
 }

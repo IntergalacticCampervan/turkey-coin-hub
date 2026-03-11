@@ -12,6 +12,8 @@ import { getLeaderboardWithHeaders } from './lib/api';
 import { AdminView } from './views/AdminView';
 import { ApiSpecsView } from './views/ApiSpecsView';
 import { DashboardView } from './views/DashboardView';
+import { NewNominationView } from './views/NewNominationView';
+import { NominationsView } from './views/NominationsView';
 import { OnboardingView } from './views/OnboardingView';
 import { StatusView } from './views/StatusView';
 
@@ -237,6 +239,8 @@ function PlatformGate({ onOnboardingComplete }: { onOnboardingComplete: () => vo
         <Routes>
           <Route path="/" element={<AppShell />}>
             <Route index element={<DashboardView />} />
+            <Route path="nominations" element={<NominationsView />} />
+            <Route path="nominations/new" element={<NewNominationView />} />
             <Route path="api-specs" element={<ApiSpecsView />} />
             <Route path="onboard" element={<Navigate to="/" replace />} />
             <Route path="admin" element={<AdminView />} />
@@ -288,9 +292,6 @@ export default function App() {
   return (
     <Web3Provider>
       <FXOverlay />
-      <div className="alpha-ribbon" aria-hidden="true">
-        ALPHA
-      </div>
       {bootDone ? (
         <AppErrorBoundary>
           <PlatformGate onOnboardingComplete={() => setBootDone(false)} />

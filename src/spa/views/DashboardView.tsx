@@ -361,7 +361,6 @@ export function DashboardView() {
       </section>
 
       {tokenError ? <p className="warning-text">{tokenError}</p> : null}
-
       <section className="terminal-card-wrap">
         <Link to="/status" className="terminal-nav-link" aria-label="Open full status page">
         <DataPanel status="syncing" className="sync-status-panel terminal-card">

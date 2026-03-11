@@ -8,4 +8,9 @@ export default defineConfig({
     mode: 'directory',
   }),
   integrations: [react()],
+  vite: {
+    resolve: {
+      dedupe: ['react', 'react-dom'],
+    },
+  },
 });
