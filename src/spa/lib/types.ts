@@ -100,3 +100,41 @@ export type TokenStatsResponse = {
 };
 
 export type ApiWarning = string | null;
+
+export type NominationStatus = 'awaiting_second' | 'processing' | 'minted' | 'failed';
+
+export type NominationRewardOption = {
+  id: string;
+  label: string;
+  amount: string;
+  announcerLine: string;
+};
+
+export type NominationEntry = {
+  id: string;
+  nomineeHandle: string;
+  nomineeWalletAddress: string;
+  nominatorHandle: string;
+  nominatorWalletAddress: string;
+  seconderHandle: string | null;
+  seconderWalletAddress: string | null;
+  rewardId: string;
+  rewardLabel: string;
+  amount: string;
+  reason: string;
+  status: NominationStatus;
+  failureReason: string | null;
+  createdAt: string;
+  secondedAt: string | null;
+  completedAt: string | null;
+};
+
+export type NominationActionResponse = {
+  ok: boolean;
+  id?: string;
+  eventId?: string;
+  txHash?: string | null;
+  status?: NominationStatus;
+  warning?: string;
+  error?: string;
+};

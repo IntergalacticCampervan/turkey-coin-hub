@@ -38,3 +38,20 @@ CREATE TABLE IF NOT EXISTS mint_events (
   queued_at TEXT,
   admin_subject TEXT
 );
+
+CREATE TABLE IF NOT EXISTS nominations (
+  id TEXT PRIMARY KEY,
+  nominee_wallet TEXT NOT NULL,
+  nominator_wallet TEXT NOT NULL,
+  seconder_wallet TEXT,
+  reward_id TEXT NOT NULL,
+  amount_raw TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  status TEXT NOT NULL,
+  mint_event_id TEXT,
+  created_at TEXT NOT NULL,
+  seconded_at TEXT,
+  completed_at TEXT,
+  failed_at TEXT,
+  failure_reason TEXT
+);
