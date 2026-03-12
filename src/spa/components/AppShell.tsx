@@ -4,6 +4,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 
 import ConnectWalletButton from '../../components/web3/ConnectWalletButton';
 import { APP_CHAIN_META } from '../../lib/chain';
+import { DashboardSidebarConsole } from './DashboardSidebarConsole';
 import { StatusBadge, TerminalText } from './TerminalPrimitives';
 
 const NAV_ITEMS = [
@@ -113,6 +114,7 @@ export function AppShell() {
               );
             })}
           </div>
+          {location.pathname === '/' ? <DashboardSidebarConsole /> : null}
         </nav>
 
         <main className="main-content">
