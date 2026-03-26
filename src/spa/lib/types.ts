@@ -26,7 +26,7 @@ export type UserEntry = {
   createdAt: string;
 };
 
-export type MintEventStatus = 'queued' | 'submitted' | 'confirmed' | 'failed';
+export type MintEventStatus = 'approval_pending' | 'queued' | 'submitted' | 'confirmed' | 'failed';
 export type MintFailureStage = 'queue_insert' | 'tx_simulation' | 'tx_submission' | 'receipt_check' | 'balance_update';
 
 export type MintEvent = {
@@ -37,6 +37,7 @@ export type MintEvent = {
   status: MintEventStatus;
   idempotencyKey: string;
   txHash: string | null;
+  reason: string | null;
   requestedBySub: string | null;
   requestedByEmail: string | null;
   createdAt: string;
@@ -52,6 +53,13 @@ export type MintResponse = {
   eventId?: string;
   txHash: string | null;
   failureStage?: MintFailureStage | null;
+  error?: string;
+};
+
+export type WheelSpinResponse = {
+  ok: boolean;
+  eventId?: string;
+  status?: MintEventStatus;
   error?: string;
 };
 

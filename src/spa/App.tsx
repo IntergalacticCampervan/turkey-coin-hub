@@ -16,6 +16,7 @@ import { NewNominationView } from './views/NewNominationView';
 import { NominationsView } from './views/NominationsView';
 import { OnboardingView } from './views/OnboardingView';
 import { StatusView } from './views/StatusView';
+import { TurkeyWheelView } from './views/TurkeyWheelView';
 
 import './styles/app.css';
 
@@ -241,6 +242,7 @@ function PlatformGate({ onOnboardingComplete }: { onOnboardingComplete: () => vo
             <Route index element={<DashboardView />} />
             <Route path="nominations" element={<NominationsView />} />
             <Route path="nominations/new" element={<NewNominationView />} />
+            <Route path="turkey-wheel" element={<TurkeyWheelView />} />
             <Route path="api-specs" element={<ApiSpecsView />} />
             <Route path="onboard" element={<Navigate to="/" replace />} />
             <Route path="admin" element={<AdminView />} />

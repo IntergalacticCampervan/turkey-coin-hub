@@ -7,7 +7,7 @@ import { getOnchainEnv } from '../../../lib/onchain';
 
 export const prerender = false;
 
-type MintEventStatus = 'queued' | 'submitted' | 'confirmed' | 'failed';
+type MintEventStatus = 'approval_pending' | 'queued' | 'submitted' | 'confirmed' | 'failed';
 
 type MintEvent = {
   id: string;
@@ -17,6 +17,7 @@ type MintEvent = {
   status: MintEventStatus;
   idempotencyKey: string;
   txHash: string | null;
+  reason: string | null;
   requestedBySub: string | null;
   requestedByEmail: string | null;
   createdAt: string;
@@ -79,8 +80,8 @@ export const GET: APIRoute = async (context) => {
   const status = url.searchParams.get('status')?.trim().toLowerCase();
   const toWallet = url.searchParams.get('to_wallet')?.trim().toLowerCase();
 
-  if (status && !['queued', 'submitted', 'confirmed', 'failed'].includes(status)) {
-    return json({ ok: false, error: 'status filter must be queued|submitted|confirmed|failed' }, 400, warningHeaders);
+  if (status && !['approval_pending', 'queued', 'submitted', 'confirmed', 'failed'].includes(status)) {
+    return json({ ok: false, error: 'status filter must be approval_pending|queued|submitted|confirmed|failed' }, 400, warningHeaders);
   }
 
   if (toWallet && !isWallet(toWallet)) {
@@ -119,6 +120,7 @@ export const GET: APIRoute = async (context) => {
           status,
           idempotency_key AS idempotencyKey,
           COALESCE(tx_hash, mint_tx_hash) AS txHash,
+          reason,
           COALESCE(requested_by_sub, admin_subject) AS requestedBySub,
           requested_by_email AS requestedByEmail,
           created_at AS createdAt,
@@ -149,6 +151,7 @@ export const GET: APIRoute = async (context) => {
           status,
           idempotency_key AS idempotencyKey,
           COALESCE(tx_hash, mint_tx_hash) AS txHash,
+          reason,
           COALESCE(requested_by_sub, admin_subject) AS requestedBySub,
           requested_by_email AS requestedByEmail,
           created_at AS createdAt,
@@ -197,8 +200,8 @@ export const PATCH: APIRoute = async (context) => {
     return json({ ok: false, error: 'eventId is required' }, 400, warningHeaders);
   }
 
-  if (!['queued', 'submitted', 'confirmed', 'failed'].includes(nextStatus)) {
-    return json({ ok: false, error: 'status must be queued|submitted|confirmed|failed' }, 400, warningHeaders);
+  if (!['approval_pending', 'queued', 'submitted', 'confirmed', 'failed'].includes(nextStatus)) {
+    return json({ ok: false, error: 'status must be approval_pending|queued|submitted|confirmed|failed' }, 400, warningHeaders);
   }
 
   if (txHash && !isTxHash(txHash)) {
@@ -262,6 +265,26 @@ export const PATCH: APIRoute = async (context) => {
     return json({ ok: true }, 200, warningHeaders);
   }
 
+  if (currentStatus === 'approval_pending' && nextStatus === 'queued') {
+    await db
+      .prepare(
+        `
+          UPDATE mint_events
+          SET
+            status = 'queued',
+            queued_at = ?,
+            updated_at = NULL,
+            failed_at = NULL,
+            failure_reason = NULL
+          WHERE id = ?
+        `,
+      )
+      .bind(now, eventId)
+      .run();
+
+    return json({ ok: true }, 200, warningHeaders);
+  }
+
   if (currentStatus === 'submitted' && nextStatus === 'confirmed') {
     if (txHash) {
       return json({ ok: false, error: 'Do not provide txHash on submitted -> confirmed' }, 400, warningHeaders);
@@ -307,6 +330,25 @@ export const PATCH: APIRoute = async (context) => {
   if (currentStatus === 'queued' && nextStatus === 'failed') {
     if (!failureReason) {
       return json({ ok: false, error: 'queued -> failed requires failureReason' }, 400, warningHeaders);
+    }
+
+    await db
+      .prepare(
+        `
+          UPDATE mint_events
+          SET status = 'failed', failed_at = ?, updated_at = ?, failure_reason = ?
+          WHERE id = ?
+        `,
+      )
+      .bind(now, now, failureReason, eventId)
+      .run();
+
+    return json({ ok: true }, 200, warningHeaders);
+  }
+
+  if (currentStatus === 'approval_pending' && nextStatus === 'failed') {
+    if (!failureReason) {
+      return json({ ok: false, error: 'approval_pending -> failed requires failureReason' }, 400, warningHeaders);
     }
 
     await db

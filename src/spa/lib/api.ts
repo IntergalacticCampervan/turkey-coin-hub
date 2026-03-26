@@ -12,6 +12,7 @@ import type {
   StatusResponse,
   TokenStatsResponse,
   UserEntry,
+  WheelSpinResponse,
 } from './types';
 
 type FetchResult<T> = {
@@ -138,6 +139,18 @@ export async function postMint(payload: {
   idempotencyKey: string;
 }) {
   return requestJson<MintResponse>('/api/admin/mint', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function postWheelSpin(payload: {
+  winnerWalletAddress: string;
+  requesterWalletAddress: string;
+  idempotencyKey: string;
+}) {
+  return requestJson<WheelSpinResponse>('/api/wheel/spin', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(payload),
