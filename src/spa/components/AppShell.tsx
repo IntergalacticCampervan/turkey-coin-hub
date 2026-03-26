@@ -1,4 +1,4 @@
-import { BookOpenText, CircleHelp, Shield, Trophy, Code, Swords } from 'lucide-react';
+import { BookOpenText, CircleHelp, Shield, Trophy, Code, Swords, Disc3 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 
@@ -10,6 +10,7 @@ import { StatusBadge, TerminalText } from './TerminalPrimitives';
 const NAV_ITEMS = [
   { to: '/', label: 'DASHBOARD', icon: Trophy },
   { to: '/nominations', label: 'TRIBUNAL', icon: Swords },
+  { to: '/turkey-wheel', label: 'TURKEY WHEEL', icon: Disc3 },
   { to: '/admin', label: 'ADMIN', icon: Shield, external: true },
   { to: '/turkey-lore', label: 'TURKEY LORE', icon: BookOpenText },
   { to: '/api-specs', label: 'API SPECS', icon: Code },
@@ -94,6 +95,8 @@ export function AppShell() {
               const active =
                 item.label === 'ADMIN'
                   ? location.pathname === '/admin'
+                  : item.label === 'TURKEY WHEEL'
+                    ? location.pathname === '/turkey-wheel'
                   : item.label === 'TURKEY LORE'
                     ? location.pathname === '/turkey-lore'
                   : item.label === 'HELP'

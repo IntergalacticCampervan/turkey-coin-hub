@@ -244,6 +244,13 @@ function EventActionMenu(props: {
       <div className="list-actions compact">
         <button
           type="button"
+          disabled={updatingEventId === event.id || event.status !== 'approval_pending'}
+          onClick={() => onUpdateStatus(event.id, 'queued', false)}
+        >
+          Approve Queue
+        </button>
+        <button
+          type="button"
           disabled={updatingEventId === event.id || !manualOverrideEnabled || event.status !== 'queued' || !manualTxHash.trim()}
           onClick={() => onUpdateStatus(event.id, 'submitted', true)}
         >
@@ -258,7 +265,7 @@ function EventActionMenu(props: {
         </button>
         <button
           type="button"
-          disabled={updatingEventId === event.id || !(event.status === 'queued' || event.status === 'submitted')}
+          disabled={updatingEventId === event.id || !(event.status === 'approval_pending' || event.status === 'queued' || event.status === 'submitted')}
           onClick={() => onUpdateStatus(event.id, 'failed', false)}
         >
           Mark Failed
@@ -686,6 +693,7 @@ export function AdminView() {
           <label htmlFor="filterStatus">Filter status</label>
           <select id="filterStatus" value={filterStatus} onChange={(event) => setFilterStatus(event.target.value)}>
             <option value="">all</option>
+            <option value="approval_pending">approval_pending</option>
             <option value="queued">queued</option>
             <option value="submitted">submitted</option>
             <option value="confirmed">confirmed</option>
@@ -740,6 +748,7 @@ export function AdminView() {
                 <th>Wallet</th>
                 <th>Amount</th>
                 <th>Status</th>
+                <th>Reason</th>
                 <th>Time</th>
                 <th>Actions</th>
               </tr>
@@ -747,7 +756,7 @@ export function AdminView() {
             <tbody>
               {events.length === 0 ? (
                 <tr>
-                  <td colSpan={6}>No mint events yet.</td>
+                  <td colSpan={7}>No mint events yet.</td>
                 </tr>
               ) : (
                 events.map((event) => (
@@ -756,6 +765,7 @@ export function AdminView() {
                     <td>{event.toWallet}</td>
                     <td>{event.amountRaw}</td>
                     <td>{event.status}</td>
+                    <td>{event.reason || '-'}</td>
                     <td>{new Date(event.createdAt).toLocaleString()}</td>
                     <td>
                       {event.failureStage || event.failureReason ? (
@@ -800,6 +810,10 @@ export function AdminView() {
                 <div className="event-card-row">
                   <span className="event-card-label">Status</span>
                   <span className="event-card-value">{event.status}</span>
+                </div>
+                <div className="event-card-row">
+                  <span className="event-card-label">Reason</span>
+                  <span className="event-card-value">{event.reason || '-'}</span>
                 </div>
                 <div className="event-card-row">
                   <span className="event-card-label">Time</span>
