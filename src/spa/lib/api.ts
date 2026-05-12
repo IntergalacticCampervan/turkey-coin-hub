@@ -12,6 +12,7 @@ import type {
   StatusResponse,
   TokenStatsResponse,
   UserEntry,
+  WheelRoundPick,
   WheelSpinResponse,
 } from './types';
 
@@ -143,6 +144,14 @@ export async function postMint(payload: {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(payload),
   });
+}
+
+export async function getWheelRound() {
+  return requestJson<{ ok: boolean; picks: WheelRoundPick[] }>('/api/wheel/round');
+}
+
+export async function deleteWheelRound() {
+  return requestJson<{ ok: boolean }>('/api/wheel/round', { method: 'DELETE' });
 }
 
 export async function postWheelSpin(payload: {

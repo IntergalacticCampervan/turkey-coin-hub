@@ -63,6 +63,11 @@ export type WheelSpinResponse = {
   error?: string;
 };
 
+export type WheelRoundPick = {
+  walletAddress: string;
+  pickedAt: string;
+};
+
 export type StatusResponse = {
   ok: boolean;
   hasD1: boolean;

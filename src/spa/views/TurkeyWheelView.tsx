@@ -1,11 +1,11 @@
-import { AlertTriangle, RotateCw, Sparkles, Send, Disc3, Maximize, Minimize } from 'lucide-react';
+import { AlertTriangle, Disc3, Eye, EyeOff, Maximize, Minimize, RefreshCcw, RotateCw, Send, Sparkles } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { useAccount } from 'wagmi';
 
 import DecryptedText from '../../components/DecryptedText';
 import GlitchText from '../../components/GlitchText';
-import { getLeaderboardWithHeaders, postWheelSpin } from '../lib/api';
+import { deleteWheelRound, getLeaderboardWithHeaders, getWheelRound, postWheelSpin } from '../lib/api';
 import type { LeaderboardEntry } from '../lib/types';
 import { DataPanel, StatusBadge, TerminalText } from '../components/TerminalPrimitives';
 
@@ -18,8 +18,8 @@ type WheelEntrant = LeaderboardEntry & {
 type Notice = { tone: 'success' | 'error'; text: string } | null;
 const STANDUP_REWARD_AMOUNT = '10';
 const WHEEL_REASON_PREFIX = '[WHEEL]';
-const WHEEL_SEGMENT_START_DEG = -180; // starting orientation for first segment (top-left placement)
-const WHEEL_SPIN_ALIGNMENT_OFFSET = WHEEL_SEGMENT_START_DEG + 90; // normalizes to top-origin math in spin alignment
+const WHEEL_SEGMENT_START_DEG = -180;
+const WHEEL_SPIN_ALIGNMENT_OFFSET = WHEEL_SEGMENT_START_DEG + 90;
 const WHEEL_LABEL_RADIUS_PERCENT = 25;
 
 const WHEEL_FANFARE = [
@@ -107,6 +107,8 @@ export function TurkeyWheelView() {
   const { address, isConnected } = useAccount();
   const fullscreenRootRef = useRef<HTMLDivElement | null>(null);
   const [entrants, setEntrants] = useState<WheelEntrant[]>([]);
+  const [pickedWallets, setPickedWallets] = useState<Set<string>>(new Set());
+  const [excludedWallets, setExcludedWallets] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
@@ -115,6 +117,7 @@ export function TurkeyWheelView() {
   const [spinning, setSpinning] = useState(false);
   const [readyToIssue, setReadyToIssue] = useState(false);
   const [issuing, setIssuing] = useState(false);
+  const [resetting, setResetting] = useState(false);
   const [spinCount, setSpinCount] = useState(0);
   const [celebrate, setCelebrate] = useState(false);
   const [winnerLine, setWinnerLine] = useState<string | null>(null);
@@ -123,11 +126,19 @@ export function TurkeyWheelView() {
   const celebrateTimerRef = useRef<number | null>(null);
   const issueLockRef = useRef(false);
 
-  const wheelGradient = useMemo(() => buildWheelGradient(entrants), [entrants]);
-  const segmentSize = entrants.length > 0 ? 360 / entrants.length : 360;
-  const winner = winnerIndex !== null ? entrants[winnerIndex] ?? null : null;
-  const labelWidth = Math.max(50, Math.min(138, Math.round(420 / Math.max(entrants.length, 1))));
-  const labelFontSize = Math.max(0.56, Math.min(0.96, 1.12 - entrants.length * 0.016));
+  const wheelEntrants = useMemo(
+    () => entrants.filter(
+      (e) => !pickedWallets.has(e.walletAddress.toLowerCase()) && !excludedWallets.has(e.walletAddress.toLowerCase()),
+    ),
+    [entrants, pickedWallets, excludedWallets],
+  );
+
+  const wheelGradient = useMemo(() => buildWheelGradient(wheelEntrants), [wheelEntrants]);
+  const segmentSize = wheelEntrants.length > 0 ? 360 / wheelEntrants.length : 360;
+  const winner = winnerIndex !== null ? wheelEntrants[winnerIndex] ?? null : null;
+  const labelWidth = Math.max(50, Math.min(138, Math.round(420 / Math.max(wheelEntrants.length, 1))));
+  const labelFontSize = Math.max(0.56, Math.min(0.96, 1.12 - wheelEntrants.length * 0.016));
+  const isRoundComplete = entrants.length > 0 && wheelEntrants.length === 0 && excludedWallets.size === 0;
 
   useEffect(() => {
     return () => {
@@ -152,21 +163,24 @@ export function TurkeyWheelView() {
   useEffect(() => {
     let cancelled = false;
 
-    const loadEntrants = async () => {
+    const load = async () => {
       setLoading(true);
-      const result = await getLeaderboardWithHeaders();
+      const [leaderboardResult, roundResult] = await Promise.all([
+        getLeaderboardWithHeaders(),
+        getWheelRound(),
+      ]);
       if (cancelled) {
         return;
       }
 
-      if (!result.ok) {
+      if (!leaderboardResult.ok) {
         setEntrants([]);
-        setLoadError(result.error || 'Could not load wheel roster.');
+        setLoadError(leaderboardResult.error || 'Could not load wheel roster.');
         setLoading(false);
         return;
       }
 
-      const rows = result.rows
+      const rows = leaderboardResult.rows
         .map((row) => normalizeRow(row))
         .filter((row): row is LeaderboardEntry => row !== null)
         .map((row, index) => ({
@@ -180,12 +194,16 @@ export function TurkeyWheelView() {
       setLoadError(null);
       setLoading(false);
       setWinnerIndex((current) => (current !== null && current < rows.length ? current : null));
+
+      if (roundResult.ok && roundResult.data?.picks) {
+        setPickedWallets(new Set(roundResult.data.picks.map((p) => p.walletAddress.toLowerCase())));
+      }
     };
 
-    void loadEntrants();
+    void load();
     const timer = window.setInterval(() => {
       if (document.visibilityState === 'visible' && !spinning) {
-        void loadEntrants();
+        void load();
       }
     }, 30_000);
 
@@ -204,11 +222,11 @@ export function TurkeyWheelView() {
   }
 
   function spinWheel() {
-    if (spinning || entrants.length === 0) {
+    if (spinning || wheelEntrants.length === 0) {
       return;
     }
 
-    const chosenIndex = secureRandomIndex(entrants.length);
+    const chosenIndex = secureRandomIndex(wheelEntrants.length);
     const centerAngle = ((chosenIndex + 0.5) * segmentSize + WHEEL_SPIN_ALIGNMENT_OFFSET + 360) % 360;
     const normalizedCurrent = ((rotation % 360) + 360) % 360;
     const alignmentDelta = (360 - centerAngle - normalizedCurrent + 360) % 360;
@@ -229,7 +247,7 @@ export function TurkeyWheelView() {
     }
 
     spinTimerRef.current = window.setTimeout(() => {
-      setWinnerLine(randomFanfare(entrants[chosenIndex]?.handle || 'mystery-turkey'));
+      setWinnerLine(randomFanfare(wheelEntrants[chosenIndex]?.handle || 'mystery-turkey'));
       setWinnerIndex(chosenIndex);
       setReadyToIssue(true);
       setSpinning(false);
@@ -266,9 +284,45 @@ export function TurkeyWheelView() {
     }
 
     setNotice({ tone: 'success', text: `Wheel result submitted for admin approval. Event ${result.data.eventId || 'pending'}.` });
+    setPickedWallets((prev) => new Set([...prev, winner.walletAddress.toLowerCase()]));
+    setWinnerIndex(null);
+    setWinnerLine(null);
     setIssuing(false);
     setReadyToIssue(false);
     issueLockRef.current = false;
+  }
+
+  async function resetRound() {
+    if (resetting) {
+      return;
+    }
+    setResetting(true);
+    await deleteWheelRound();
+    setPickedWallets(new Set());
+    setExcludedWallets(new Set());
+    setWinnerIndex(null);
+    setWinnerLine(null);
+    setReadyToIssue(false);
+    setNotice(null);
+    setResetting(false);
+  }
+
+  function toggleExcluded(walletAddress: string) {
+    const key = walletAddress.toLowerCase();
+    if (winner?.walletAddress.toLowerCase() === key) {
+      setWinnerIndex(null);
+      setWinnerLine(null);
+      setReadyToIssue(false);
+    }
+    setExcludedWallets((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
   }
 
   async function toggleFullscreen() {
@@ -310,9 +364,9 @@ export function TurkeyWheelView() {
 
       <section className="kpi-strip turkey-wheel-kpis">
         <DataPanel status="active" className="kpi-chip">
-          <TerminalText className="metric-label">ROSTER</TerminalText>
-          <div className="kpi-chip-value">{entrants.length}</div>
-          <TerminalText className="metric-sub">WALLETS</TerminalText>
+          <TerminalText className="metric-label">WHEEL POOL</TerminalText>
+          <div className="kpi-chip-value">{wheelEntrants.length}</div>
+          <TerminalText className="metric-sub">ELIGIBLE</TerminalText>
         </DataPanel>
         <DataPanel status="alert" className="kpi-chip">
           <TerminalText className="metric-label">APPROVAL MODE</TerminalText>
@@ -322,9 +376,9 @@ export function TurkeyWheelView() {
           <TerminalText className="metric-sub">ADMIN REQUIRED</TerminalText>
         </DataPanel>
         <DataPanel status="active" className="kpi-chip">
-          <TerminalText className="metric-label">SPINS TODAY</TerminalText>
-          <div className="kpi-chip-value">{spinCount}</div>
-          <TerminalText className="metric-sub">CHAOS EVENTS</TerminalText>
+          <TerminalText className="metric-label">ROUND</TerminalText>
+          <div className="kpi-chip-value">{pickedWallets.size}/{entrants.length}</div>
+          <TerminalText className="metric-sub">PICKED</TerminalText>
         </DataPanel>
       </section>
 
@@ -351,7 +405,7 @@ export function TurkeyWheelView() {
               type="button"
               className="turkey-wheel-disc-button"
               onClick={spinWheel}
-              disabled={loading || entrants.length === 0 || spinning}
+              disabled={loading || wheelEntrants.length === 0 || spinning}
               aria-label={spinning ? 'Wheel spinning' : 'Spin the standup selection wheel'}
             >
               <div
@@ -363,7 +417,7 @@ export function TurkeyWheelView() {
                 aria-hidden="true"
               >
                 <div className="turkey-wheel-disc-inner">
-                  {entrants.map((entrant, index) => {
+                  {wheelEntrants.map((entrant, index) => {
                     const angle = index * segmentSize + segmentSize / 2 + WHEEL_SEGMENT_START_DEG;
                     const radians = (angle * Math.PI) / 180;
                     const labelX = 50 + Math.cos(radians) * WHEEL_LABEL_RADIUS_PERCENT;
@@ -443,7 +497,7 @@ export function TurkeyWheelView() {
                     <Send size={15} />
                     <span>{issuing ? 'SUBMITTING...' : 'SEND TO ADMIN FOR APPROVAL'}</span>
                   </button>
-                  <button type="button" className="turkey-wheel-retry-btn" onClick={spinWheel} disabled={spinning || issuing || entrants.length === 0}>
+                  <button type="button" className="turkey-wheel-retry-btn" onClick={spinWheel} disabled={spinning || issuing || wheelEntrants.length === 0}>
                     <RotateCw size={15} />
                     <span>RETRY SPIN</span>
                   </button>
@@ -459,25 +513,72 @@ export function TurkeyWheelView() {
             )}
           </DataPanel>
 
-          <DataPanel title="[ ENTRANT ROSTER ]" status="active">
+          <DataPanel title={`[ ENTRANT ROSTER — ${pickedWallets.size}/${entrants.length} DONE ]`} status="active">
             {loading ? <p className="muted-text">Loading turkey roster...</p> : null}
             {!loading && entrants.length === 0 ? <p className="warning-text">No wallets available for wheel duty.</p> : null}
+            {isRoundComplete ? (
+              <TerminalText as="p" className="turkey-wheel-round-complete-notice glow">
+                ROUND COMPLETE — ALL TURKEYS SERVED
+              </TerminalText>
+            ) : null}
             <div className="turkey-wheel-roster">
               {entrants.map((entrant, index) => {
-                const active = winner?.walletAddress === entrant.walletAddress;
+                const isPicked = pickedWallets.has(entrant.walletAddress.toLowerCase());
+                const isExcluded = excludedWallets.has(entrant.walletAddress.toLowerCase());
+                const isWinner = winner?.walletAddress === entrant.walletAddress;
                 return (
-                  <div key={entrant.walletAddress} className={`turkey-wheel-roster-row ${active ? 'is-winner' : ''}`}>
+                  <div
+                    key={entrant.walletAddress}
+                    className={[
+                      'turkey-wheel-roster-row',
+                      isWinner ? 'is-winner' : '',
+                      isPicked ? 'is-picked' : '',
+                      isExcluded ? 'is-excluded' : '',
+                    ].filter(Boolean).join(' ')}
+                  >
                     <span className="turkey-wheel-roster-rank">#{index + 1}</span>
                     <span className="turkey-wheel-roster-handle">@{entrant.handle}</span>
-                    <span className="turkey-wheel-roster-wallet">{shortWallet(entrant.walletAddress)}</span>
+                    {isPicked ? (
+                      <span className="turkey-wheel-picked-badge">DONE</span>
+                    ) : (
+                      <span className="turkey-wheel-roster-wallet">{shortWallet(entrant.walletAddress)}</span>
+                    )}
+                    {isPicked ? (
+                      <span />
+                    ) : (
+                      <button
+                        type="button"
+                        className="turkey-wheel-roster-exclude-btn"
+                        onClick={() => toggleExcluded(entrant.walletAddress)}
+                        disabled={spinning || issuing}
+                        aria-label={isExcluded ? `Include ${entrant.handle} in spin` : `Exclude ${entrant.handle} from spin`}
+                      >
+                        {isExcluded ? <Eye size={13} /> : <EyeOff size={13} />}
+                      </button>
+                    )}
                   </div>
                 );
               })}
             </div>
             <div className="turkey-wheel-actions turkey-wheel-actions-inline">
-              <button type="button" className="primary-cta turkey-wheel-spin-btn" onClick={spinWheel} disabled={loading || entrants.length === 0 || spinning}>
+              <button
+                type="button"
+                className="primary-cta turkey-wheel-spin-btn"
+                onClick={spinWheel}
+                disabled={loading || wheelEntrants.length === 0 || spinning}
+              >
                 <RotateCw size={16} />
                 <span>{spinning ? 'SPINNING...' : 'SPIN THE WHEEL'}</span>
+              </button>
+              <button
+                type="button"
+                className="turkey-wheel-retry-btn"
+                onClick={() => void resetRound()}
+                disabled={resetting || spinning || pickedWallets.size === 0}
+                aria-label="Reset round — make all wallets eligible again"
+              >
+                <RefreshCcw size={14} />
+                <span>{resetting ? '...' : 'RESET'}</span>
               </button>
             </div>
           </DataPanel>

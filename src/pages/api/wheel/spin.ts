@@ -155,6 +155,11 @@ export const POST: APIRoute = async (context) => {
     )
     .run();
 
+  await db
+    .prepare(`INSERT OR REPLACE INTO wheel_round_picks (wallet_address, picked_at) VALUES (?, ?)`)
+    .bind(winnerWalletAddress, now)
+    .run();
+
   return json({
     ok: true,
     eventId,

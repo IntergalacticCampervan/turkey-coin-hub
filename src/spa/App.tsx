@@ -44,7 +44,7 @@ function hasWalletOnboarded(rows: unknown[], walletAddress: string): boolean {
 }
 
 function PlatformGate({ onOnboardingComplete }: { onOnboardingComplete: () => void }) {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, status } = useAccount();
   const { reconnectAsync } = useReconnect();
   const [hasCompletedInitialGate, setHasCompletedInitialGate] = useState(() => {
     if (typeof window === 'undefined') {
@@ -124,8 +124,12 @@ function PlatformGate({ onOnboardingComplete }: { onOnboardingComplete: () => vo
     }
 
     if (!isConnected || !address) {
-      setGateState('needsOnboarding');
-      setGateReason('wallet_disconnected');
+      if (status === 'reconnecting' || status === 'connecting') {
+        setGateState('checking');
+      } else {
+        setGateState('needsOnboarding');
+        setGateReason('wallet_disconnected');
+      }
       setGateError(null);
       return () => {
         cancelled = true;
@@ -176,7 +180,7 @@ function PlatformGate({ onOnboardingComplete }: { onOnboardingComplete: () => vo
       cancelled = true;
       window.clearTimeout(authTimer);
     };
-  }, [address, bypassWalletGate, hasCompletedInitialGate, isConnected, refreshToken]);
+  }, [address, bypassWalletGate, hasCompletedInitialGate, isConnected, refreshToken, status]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
