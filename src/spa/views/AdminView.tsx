@@ -1,11 +1,21 @@
 import { AlertTriangle, Send, Shield } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useAccount } from 'wagmi';
 
 import DecryptedText from '../../components/DecryptedText';
-import { getMintEvents, getUsers, patchMintEvent, postMint } from '../lib/api';
-import type { MintEvent, MintEventStatus, UserEntry } from '../lib/types';
+import {
+  getAdminShopClaims,
+  getAdminShopItems,
+  getMintEvents,
+  getUsers,
+  patchAdminShopClaim,
+  patchAdminShopItem,
+  patchMintEvent,
+  postAdminShopItem,
+  postMint,
+} from '../lib/api';
+import type { MintEvent, MintEventStatus, RedemptionEvent, RedemptionStatus, ShopItem, UserEntry } from '../lib/types';
 import { DataPanel, StatusBadge, TerminalText } from '../components/TerminalPrimitives';
 
 type Notice = { tone: 'success' | 'error'; text: string } | null;
@@ -310,6 +320,20 @@ export function AdminView() {
   const [updatingEventId, setUpdatingEventId] = useState<string | null>(null);
   const mintSubmitLockRef = useRef(false);
 
+  // Shop state
+  const [shopItems, setShopItems] = useState<ShopItem[]>([]);
+  const [loadingShopItems, setLoadingShopItems] = useState(false);
+  const [shopClaims, setShopClaims] = useState<RedemptionEvent[]>([]);
+  const [loadingShopClaims, setLoadingShopClaims] = useState(false);
+  const [shopClaimsFilter, setShopClaimsFilter] = useState<RedemptionStatus | ''>('pending');
+  const [shopNotice, setShopNotice] = useState<Notice>(null);
+  const [updatingClaimId, setUpdatingClaimId] = useState<string | null>(null);
+  const [newItemLabel, setNewItemLabel] = useState('');
+  const [newItemDescription, setNewItemDescription] = useState('');
+  const [newItemCost, setNewItemCost] = useState('');
+  const [newItemSortOrder, setNewItemSortOrder] = useState('0');
+  const [savingNewItem, setSavingNewItem] = useState(false);
+
   const normalizedFilterWallet = useMemo(() => filterWallet.trim().toLowerCase(), [filterWallet]);
   const selectedUser = useMemo(
     () => users.find((user) => user.walletAddress.toLowerCase() === selectedWallet.toLowerCase()),
@@ -395,8 +419,34 @@ export function AdminView() {
     setLoadingEvents(false);
   }
 
+  async function loadShopItems() {
+    setLoadingShopItems(true);
+    const result = await getAdminShopItems();
+    if (!result.ok || !result.data) {
+      setShopNotice({ tone: 'error', text: result.error || 'Could not load shop items.' });
+      setLoadingShopItems(false);
+      return;
+    }
+    setShopItems(Array.isArray(result.data) ? result.data : []);
+    setLoadingShopItems(false);
+  }
+
+  async function loadShopClaims(status?: RedemptionStatus | '') {
+    setLoadingShopClaims(true);
+    const result = await getAdminShopClaims({ status: (status ?? shopClaimsFilter) || undefined, limit: 50 });
+    if (!result.ok || !result.data) {
+      setShopNotice({ tone: 'error', text: result.error || 'Could not load redemption claims.' });
+      setLoadingShopClaims(false);
+      return;
+    }
+    setShopClaims(Array.isArray(result.data) ? result.data : []);
+    setLoadingShopClaims(false);
+  }
+
   useEffect(() => {
     loadUsers();
+    void loadShopItems();
+    void loadShopClaims('pending');
   }, []);
 
   useEffect(() => {
@@ -531,6 +581,62 @@ export function AdminView() {
     setNotice({ tone: 'success', text: `Updated ${eventId.slice(0, 8)} to ${status}.` });
     setUpdatingEventId(null);
     await loadEvents();
+  }
+
+  async function handleCreateShopItem(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingNewItem(true);
+    setShopNotice(null);
+    const result = await postAdminShopItem({
+      label: newItemLabel.trim(),
+      description: newItemDescription.trim(),
+      cost: newItemCost.trim(),
+      sortOrder: Number(newItemSortOrder) || 0,
+    });
+    setSavingNewItem(false);
+    if (!result.ok) {
+      setShopNotice({ tone: 'error', text: result.error || 'Failed to create item.' });
+      return;
+    }
+    setNewItemLabel('');
+    setNewItemDescription('');
+    setNewItemCost('');
+    setNewItemSortOrder('0');
+    setShopNotice({ tone: 'success', text: 'Item created.' });
+    void loadShopItems();
+  }
+
+  async function toggleShopItemActive(item: ShopItem) {
+    const result = await patchAdminShopItem({ id: item.id, active: !item.active });
+    if (!result.ok) {
+      setShopNotice({ tone: 'error', text: result.error || 'Failed to update item.' });
+      return;
+    }
+    void loadShopItems();
+  }
+
+  async function fulfillClaim(claimId: string) {
+    setUpdatingClaimId(claimId);
+    const result = await patchAdminShopClaim({ id: claimId, status: 'fulfilled' });
+    setUpdatingClaimId(null);
+    if (!result.ok) {
+      setShopNotice({ tone: 'error', text: result.error || 'Failed to fulfill claim.' });
+      return;
+    }
+    setShopNotice({ tone: 'success', text: 'Claim marked as fulfilled.' });
+    void loadShopClaims();
+  }
+
+  async function cancelClaim(claimId: string) {
+    setUpdatingClaimId(claimId);
+    const result = await patchAdminShopClaim({ id: claimId, status: 'cancelled' });
+    setUpdatingClaimId(null);
+    if (!result.ok) {
+      setShopNotice({ tone: 'error', text: result.error || 'Failed to cancel claim.' });
+      return;
+    }
+    setShopNotice({ tone: 'success', text: 'Claim cancelled.' });
+    void loadShopClaims();
   }
 
   if (authError) {
@@ -835,6 +941,141 @@ export function AdminView() {
                   manualTxHash={manualTxHash}
                   onUpdateStatus={updateStatus}
                 />
+              </div>
+            ))
+          )}
+        </div>
+      </DataPanel>
+
+      {shopNotice ? (
+        <p className={shopNotice.tone === 'success' ? 'success-text' : 'error-text'}>{shopNotice.text}</p>
+      ) : null}
+
+      <DataPanel title="[ SHOP CATALOGUE ]" status={loadingShopItems ? 'syncing' : 'active'}>
+        <div className="admin-shop-items-list">
+          {loadingShopItems ? (
+            <p className="muted-text">Loading...</p>
+          ) : shopItems.length === 0 ? (
+            <p className="muted-text">No items yet. Add one below.</p>
+          ) : (
+            shopItems.map((item) => (
+              <div key={item.id} className="admin-shop-item-row">
+                <div className="admin-shop-item-meta">
+                  <TerminalText className={item.active ? '' : 'muted-text'}>
+                    {item.label}
+                  </TerminalText>
+                  <TerminalText className="muted-text admin-shop-item-desc">{item.description}</TerminalText>
+                </div>
+                <span className="shop-item-cost">{item.cost} TC</span>
+                <button
+                  type="button"
+                  className={item.active ? 'turkey-wheel-retry-btn' : 'primary-cta'}
+                  onClick={() => void toggleShopItemActive(item)}
+                >
+                  {item.active ? 'DEACTIVATE' : 'ACTIVATE'}
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+        <form onSubmit={(e) => void handleCreateShopItem(e)} className="form-stack admin-shop-new-item-form">
+          <TerminalText className="metric-label">ADD NEW ITEM</TerminalText>
+          <label htmlFor="newItemLabel">Label</label>
+          <input
+            id="newItemLabel"
+            type="text"
+            value={newItemLabel}
+            onChange={(e) => setNewItemLabel(e.target.value)}
+            placeholder="e.g. BARISTA BRIBE"
+            required
+          />
+          <label htmlFor="newItemDescription">Description</label>
+          <input
+            id="newItemDescription"
+            type="text"
+            value={newItemDescription}
+            onChange={(e) => setNewItemDescription(e.target.value)}
+            placeholder="e.g. A coffee or equivalent beverage, on the house."
+            required
+          />
+          <label htmlFor="newItemCost">Cost (TC)</label>
+          <input
+            id="newItemCost"
+            type="text"
+            value={newItemCost}
+            onChange={(e) => setNewItemCost(e.target.value)}
+            placeholder="e.g. 10"
+            required
+          />
+          <label htmlFor="newItemSortOrder">Sort Order</label>
+          <input
+            id="newItemSortOrder"
+            type="number"
+            value={newItemSortOrder}
+            onChange={(e) => setNewItemSortOrder(e.target.value)}
+            placeholder="0"
+          />
+          <button type="submit" className="primary-cta" disabled={savingNewItem}>
+            {savingNewItem ? 'SAVING...' : 'ADD ITEM'}
+          </button>
+        </form>
+      </DataPanel>
+
+      <DataPanel title="[ REDEMPTION QUEUE ]" status={loadingShopClaims ? 'syncing' : 'active'}>
+        <div className="admin-shop-claims-filters">
+          {(['pending', 'fulfilled', 'cancelled', ''] as const).map((s) => (
+            <button
+              key={s || 'all'}
+              type="button"
+              className={shopClaimsFilter === s ? 'primary-cta' : 'turkey-wheel-retry-btn'}
+              onClick={() => {
+                setShopClaimsFilter(s);
+                void loadShopClaims(s);
+              }}
+            >
+              {s ? s.toUpperCase() : 'ALL'}
+            </button>
+          ))}
+        </div>
+        <div className="admin-shop-claims-list">
+          {loadingShopClaims ? (
+            <p className="muted-text">Loading...</p>
+          ) : shopClaims.length === 0 ? (
+            <p className="muted-text">No claims found.</p>
+          ) : (
+            shopClaims.map((claim) => (
+              <div key={claim.id} className="admin-shop-claim-row">
+                <div className="admin-shop-claim-meta">
+                  <TerminalText className="shop-claim-label">
+                    {claim.handle ? `@${claim.handle}` : claim.walletAddress.slice(0, 10)}
+                  </TerminalText>
+                  <TerminalText className="muted-text">{claim.itemLabel}</TerminalText>
+                </div>
+                <span className="shop-item-cost">{claim.cost} TC</span>
+                <span className={`redemption-status-badge is-${claim.status}`}>{claim.status.toUpperCase()}</span>
+                <TerminalText className="muted-text">
+                  {new Date(claim.createdAt).toLocaleDateString()}
+                </TerminalText>
+                {claim.status === 'pending' ? (
+                  <div className="admin-shop-claim-actions">
+                    <button
+                      type="button"
+                      className="primary-cta"
+                      disabled={updatingClaimId === claim.id}
+                      onClick={() => void fulfillClaim(claim.id)}
+                    >
+                      {updatingClaimId === claim.id ? '...' : 'FULFIL'}
+                    </button>
+                    <button
+                      type="button"
+                      className="turkey-wheel-retry-btn"
+                      disabled={updatingClaimId === claim.id}
+                      onClick={() => void cancelClaim(claim.id)}
+                    >
+                      CANCEL
+                    </button>
+                  </div>
+                ) : null}
               </div>
             ))
           )}

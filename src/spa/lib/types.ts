@@ -151,3 +151,35 @@ export type NominationActionResponse = {
   warning?: string;
   error?: string;
 };
+
+export type ShopItem = {
+  id: string;
+  label: string;
+  description: string;
+  cost: string;
+  active: boolean;
+  sortOrder: number;
+  createdAt: string;
+};
+
+export type RedemptionStatus = 'pending' | 'fulfilled' | 'cancelled';
+
+export type RedemptionEvent = {
+  id: string;
+  walletAddress: string;
+  handle?: string;
+  itemId: string;
+  itemLabel: string;
+  cost: string;
+  status: RedemptionStatus;
+  adminNote: string | null;
+  createdAt: string;
+  fulfilledAt: string | null;
+  cancelledAt: string | null;
+};
+
+export type ShopClaimResponse = {
+  ok: boolean;
+  id?: string;
+  error?: string;
+};

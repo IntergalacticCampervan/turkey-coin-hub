@@ -9,6 +9,10 @@ import type {
   NominationEntry,
   OnboardResponse,
   RecentMintEntry,
+  RedemptionEvent,
+  RedemptionStatus,
+  ShopClaimResponse,
+  ShopItem,
   StatusResponse,
   TokenStatsResponse,
   UserEntry,
@@ -223,6 +227,69 @@ export async function postNomination(payload: {
 export async function postNominationSecond(payload: { nominationId: string; seconderWalletAddress: string }) {
   return requestJson<NominationActionResponse>('/api/nominations/second', {
     method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getShopItems() {
+  return requestJson<ShopItem[]>('/api/shop/items');
+}
+
+export async function postShopClaim(payload: { walletAddress: string; itemId: string }) {
+  return requestJson<ShopClaimResponse>('/api/shop/claim', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getAdminShopItems() {
+  return requestJson<ShopItem[]>('/api/admin/shop/items');
+}
+
+export async function postAdminShopItem(payload: {
+  label: string;
+  description: string;
+  cost: string;
+  sortOrder?: number;
+}) {
+  return requestJson<{ ok: boolean; id?: string }>('/api/admin/shop/items', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function patchAdminShopItem(payload: {
+  id: string;
+  label?: string;
+  description?: string;
+  cost?: string;
+  active?: boolean;
+  sortOrder?: number;
+}) {
+  return requestJson<{ ok: boolean }>('/api/admin/shop/items', {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getAdminShopClaims(filters: { status?: RedemptionStatus; limit?: number }) {
+  const params = new URLSearchParams();
+  params.set('limit', String(filters.limit ?? 50));
+  if (filters.status) params.set('status', filters.status);
+  return requestJson<RedemptionEvent[]>(`/api/admin/shop/claims?${params.toString()}`);
+}
+
+export async function patchAdminShopClaim(payload: {
+  id: string;
+  status: RedemptionStatus;
+  adminNote?: string;
+}) {
+  return requestJson<{ ok: boolean }>('/api/admin/shop/claims', {
+    method: 'PATCH',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(payload),
   });
