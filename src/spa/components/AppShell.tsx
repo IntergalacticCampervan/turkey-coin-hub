@@ -1,4 +1,4 @@
-import { BookOpenText, CircleHelp, Shield, Trophy, Code, Swords, Disc3 } from 'lucide-react';
+import { BookOpenText, CircleHelp, Shield, Trophy, Code, Swords, Disc3, ShoppingBag } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 
@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { to: '/', label: 'DASHBOARD', icon: Trophy },
   { to: '/nominations', label: 'TRIBUNAL', icon: Swords },
   { to: '/turkey-wheel', label: 'TURKEY WHEEL', icon: Disc3 },
+  { to: '/shop', label: 'SHOP', icon: ShoppingBag },
   { to: '/admin', label: 'ADMIN', icon: Shield, external: true },
   { to: '/turkey-lore', label: 'TURKEY LORE', icon: BookOpenText },
   { to: '/api-specs', label: 'API SPECS', icon: Code },

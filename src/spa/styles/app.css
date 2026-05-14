@@ -3947,3 +3947,202 @@ input::placeholder {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── Redemption Shop ─────────────────────────────────────────────────────── */
+
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.shop-item-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 1px solid var(--line-soft);
+  background: var(--bg-panel);
+}
+
+.shop-item-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.shop-item-label {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-soft);
+  letter-spacing: 0.04em;
+}
+
+.shop-item-description {
+  flex: 1;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.shop-item-cost {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--phosphor-accent);
+  background: rgba(63, 245, 223, 0.1);
+  border: 1px solid rgba(63, 245, 223, 0.3);
+  padding: 0.1rem 0.45rem;
+  white-space: nowrap;
+}
+
+.shop-confirm-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  border: 1px dashed var(--line-soft);
+  background: rgba(255, 163, 58, 0.05);
+}
+
+.shop-confirm-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.shop-claim-btn {
+  margin-top: auto;
+}
+
+.redemption-status-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid;
+}
+
+.redemption-status-badge.is-pending {
+  color: #ffe066;
+  border-color: rgba(255, 224, 102, 0.4);
+  background: rgba(255, 224, 102, 0.08);
+}
+
+.redemption-status-badge.is-fulfilled {
+  color: #7ce577;
+  border-color: rgba(124, 229, 119, 0.4);
+  background: rgba(124, 229, 119, 0.08);
+}
+
+.redemption-status-badge.is-cancelled {
+  color: var(--text-muted);
+  border-color: rgba(255, 211, 156, 0.2);
+  background: transparent;
+  opacity: 0.6;
+}
+
+.shop-claims-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.shop-claim-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.25rem;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.shop-claim-label {
+  font-size: 0.82rem;
+  color: var(--text-soft);
+}
+
+/* Admin shop panels */
+
+.admin-shop-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-shop-item-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.25rem;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.admin-shop-item-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.admin-shop-item-desc {
+  font-size: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-shop-new-item-form {
+  border-top: 1px solid var(--line-soft);
+  padding-top: 1rem;
+}
+
+.admin-shop-claims-filters {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.admin-shop-claims-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.admin-shop-claim-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.25rem;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.admin-shop-claim-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.admin-shop-claim-actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+@media (max-width: 600px) {
+  .shop-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-shop-claim-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto auto;
+  }
+
+  .admin-shop-claim-actions {
+    grid-column: 1 / -1;
+  }
+}
