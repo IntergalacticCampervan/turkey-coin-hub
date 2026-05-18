@@ -56,28 +56,34 @@ export const GET: APIRoute = async (context) => {
   const where = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
   bindings.push(limit);
 
-  const result = await db
-    .prepare(
-      `SELECT
-         r.id,
-         r.wallet_address AS walletAddress,
-         u.handle,
-         r.item_id AS itemId,
-         r.item_label AS itemLabel,
-         r.cost,
-         r.status,
-         r.admin_note AS adminNote,
-         r.created_at AS createdAt,
-         r.fulfilled_at AS fulfilledAt,
-         r.cancelled_at AS cancelledAt
-       FROM redemption_events r
-       LEFT JOIN users u ON u.wallet_address = r.wallet_address
-       ${where}
-       ORDER BY r.created_at DESC
-       LIMIT ?`,
-    )
-    .bind(...bindings)
-    .all<ClaimRow>();
+  let result: { results?: ClaimRow[] };
+  try {
+    result = await db
+      .prepare(
+        `SELECT
+           r.id,
+           r.wallet_address AS walletAddress,
+           u.handle,
+           r.item_id AS itemId,
+           r.item_label AS itemLabel,
+           r.cost,
+           r.status,
+           r.admin_note AS adminNote,
+           r.created_at AS createdAt,
+           r.fulfilled_at AS fulfilledAt,
+           r.cancelled_at AS cancelledAt
+         FROM redemption_events r
+         LEFT JOIN users u ON u.wallet_address = r.wallet_address
+         ${where}
+         ORDER BY r.created_at DESC
+         LIMIT ?`,
+      )
+      .bind(...bindings)
+      .all<ClaimRow>();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err ?? 'DB error');
+    return json({ ok: false, error: msg }, 500);
+  }
 
   return json(result.results ?? []);
 };
