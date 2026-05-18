@@ -4013,6 +4013,29 @@ input::placeholder {
   margin-top: auto;
 }
 
+.shop-item-card.is-unaffordable {
+  opacity: 0.55;
+  filter: grayscale(0.4);
+}
+
+.shop-progress-track {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.shop-progress-fill {
+  height: 100%;
+  background: var(--phosphor-accent);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.shop-item-card.is-unaffordable .shop-progress-fill {
+  background: var(--text-muted);
+}
+
 .redemption-status-badge {
   display: inline-block;
   font-size: 0.65rem;

@@ -159,8 +159,12 @@ export function RedemptionShopView() {
           <div className="shop-grid">
             {items.map((item) => {
               const isClaiming = claiming?.itemId === item.id;
+              const cost = parseFloat(item.cost);
+              const bal = parseFloat(balance ?? '0');
+              const canAfford = isConnected && balance !== null && bal >= cost;
+              const progress = balance === null ? 0 : Math.min(100, cost > 0 ? (bal / cost) * 100 : 100);
               return (
-                <div key={item.id} className="shop-item-card">
+                <div key={item.id} className={`shop-item-card${canAfford ? '' : ' is-unaffordable'}`}>
                   <div className="shop-item-header">
                     <TerminalText className="shop-item-label">{item.label}</TerminalText>
                     <span className="shop-item-cost">{item.cost} TC</span>
@@ -168,6 +172,9 @@ export function RedemptionShopView() {
                   <TerminalText as="p" className="shop-item-description muted-text">
                     {item.description}
                   </TerminalText>
+                  <div className="shop-progress-track" aria-label={`${Math.round(progress)}% of cost saved`}>
+                    <div className="shop-progress-fill" style={{ width: `${progress}%` }} />
+                  </div>
                   {isClaiming && claiming.stage === 'confirm' ? (
                     <div className="shop-confirm-inline">
                       <TerminalText className="muted-text">Spend {item.cost} TC?</TerminalText>
@@ -189,7 +196,7 @@ export function RedemptionShopView() {
                       type="button"
                       className="primary-cta shop-claim-btn"
                       onClick={() => startClaim(item.id)}
-                      disabled={!isConnected || (isClaiming && claiming.stage === 'submitting')}
+                      disabled={!isConnected || !canAfford || (isClaiming && claiming.stage === 'submitting')}
                     >
                       {isClaiming && claiming.stage === 'submitting' ? 'CLAIMING...' : 'CLAIM'}
                     </button>
