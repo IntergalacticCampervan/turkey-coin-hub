@@ -46,39 +46,44 @@ export const POST: APIRoute = async (context) => {
   const db = getDB(context);
   if (!db) return json({ ok: false, error: 'D1 is not configured' }, 503);
 
-  const user = await db
-    .prepare(`SELECT handle FROM users WHERE wallet_address = ? LIMIT 1`)
-    .bind(walletAddress)
-    .first<{ handle: string }>();
+  try {
+    const user = await db
+      .prepare(`SELECT handle FROM users WHERE wallet_address = ? LIMIT 1`)
+      .bind(walletAddress)
+      .first<{ handle: string }>();
 
-  if (!user?.handle) {
-    return json({ ok: false, error: 'Wallet is not enrolled in the roster' }, 403);
+    if (!user?.handle) {
+      return json({ ok: false, error: 'Wallet is not enrolled in the roster' }, 403);
+    }
+
+    const item = await db
+      .prepare(`SELECT id, label, cost, active FROM shop_items WHERE id = ? LIMIT 1`)
+      .bind(itemId)
+      .first<{ id: string; label: string; cost: string; active: number }>();
+
+    if (!item) {
+      return json({ ok: false, error: 'Item not found' }, 404);
+    }
+
+    if (item.active !== 1) {
+      return json({ ok: false, error: 'Item is no longer available' }, 410);
+    }
+
+    const id = randomId();
+    const now = new Date().toISOString();
+
+    await db
+      .prepare(
+        `INSERT INTO redemption_events
+           (id, wallet_address, item_id, item_label, cost, status, created_at)
+         VALUES (?, ?, ?, ?, ?, 'pending', ?)`,
+      )
+      .bind(id, walletAddress, item.id, item.label, item.cost, now)
+      .run();
+
+    return json({ ok: true, id });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err ?? 'DB error');
+    return json({ ok: false, error: msg }, 500);
   }
-
-  const item = await db
-    .prepare(`SELECT id, label, cost, active FROM shop_items WHERE id = ? LIMIT 1`)
-    .bind(itemId)
-    .first<{ id: string; label: string; cost: string; active: number }>();
-
-  if (!item) {
-    return json({ ok: false, error: 'Item not found' }, 404);
-  }
-
-  if (item.active !== 1) {
-    return json({ ok: false, error: 'Item is no longer available' }, 410);
-  }
-
-  const id = randomId();
-  const now = new Date().toISOString();
-
-  await db
-    .prepare(
-      `INSERT INTO redemption_events
-         (id, wallet_address, item_id, item_label, cost, status, created_at)
-       VALUES (?, ?, ?, ?, ?, 'pending', ?)`,
-    )
-    .bind(id, walletAddress, item.id, item.label, item.cost, now)
-    .run();
-
-  return json({ ok: true, id });
 };

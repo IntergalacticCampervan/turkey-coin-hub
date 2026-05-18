@@ -25,21 +25,27 @@ export const GET: APIRoute = async (context) => {
   const db = getDB(context);
   if (!db) return json({ ok: false, error: 'D1 is not configured' }, 503);
 
-  const result = await db
-    .prepare(
-      `SELECT
-         id,
-         label,
-         description,
-         cost,
-         active,
-         sort_order AS sortOrder,
-         created_at AS createdAt
-       FROM shop_items
-       WHERE active = 1
-       ORDER BY sort_order ASC, created_at ASC`,
-    )
-    .all<ShopItemRow>();
+  let result: { results?: ShopItemRow[] };
+  try {
+    result = await db
+      .prepare(
+        `SELECT
+           id,
+           label,
+           description,
+           cost,
+           active,
+           sort_order AS sortOrder,
+           created_at AS createdAt
+         FROM shop_items
+         WHERE active = 1
+         ORDER BY sort_order ASC, created_at ASC`,
+      )
+      .all<ShopItemRow>();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err ?? 'DB error');
+    return json({ ok: false, error: msg }, 500);
+  }
 
   const items = (result.results ?? []).map((row) => ({
     ...row,
